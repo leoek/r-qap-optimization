@@ -1,0 +1,76 @@
+{
+    "name": "r-qap-optimization",
+    "version": "1.0.0",
+    "main": "dist/index.js",
+    "author": "Leo",
+    "license": "MIT",
+    "babel": {
+      "presets": [
+        "@babel/preset-env"
+      ],
+      "plugins": [
+        "@babel/plugin-transform-runtime",
+        "@babel/plugin-syntax-dynamic-import",
+        "@babel/plugin-syntax-import-meta",
+        "@babel/plugin-proposal-class-properties",
+        "@babel/plugin-proposal-json-strings",
+        [
+          "@babel/plugin-proposal-decorators",
+          {
+            "legacy": true
+          }
+        ],
+        "@babel/plugin-proposal-function-sent",
+        "@babel/plugin-proposal-export-namespace-from",
+        "@babel/plugin-proposal-numeric-separator",
+        "@babel/plugin-proposal-throw-expressions",
+        "@babel/plugin-proposal-export-default-from",
+        "@babel/plugin-proposal-logical-assignment-operators",
+        "@babel/plugin-proposal-optional-chaining",
+        [
+          "@babel/plugin-proposal-pipeline-operator",
+          {
+            "proposal": "minimal"
+          }
+        ],
+        "@babel/plugin-proposal-nullish-coalescing-operator",
+        "@babel/plugin-proposal-do-expressions"
+      ]
+    },
+    "scripts": {
+      "build": "babel -d dist/ src",
+      "build:debug": "babel --source-maps -d dist/ src",
+      "serve": "nodemon dist/app.js",
+      "serve:node": "node dist/app.js",
+      "serve:debug": "nodemon --inspect dist/app.js",
+      "start": "nodemon -e js,ts --watch src --exec \"yarn build:debug && yarn serve:debug\""
+    },
+    "devDependencies": {
+      "@babel/cli": "^7.0.0",
+      "@babel/core": "^7.0.0",
+      "@babel/plugin-proposal-class-properties": "^7.0.0",
+      "@babel/plugin-proposal-decorators": "^7.0.0",
+      "@babel/plugin-proposal-do-expressions": "^7.0.0",
+      "@babel/plugin-proposal-export-default-from": "^7.0.0",
+      "@babel/plugin-proposal-export-namespace-from": "^7.0.0",
+      "@babel/plugin-proposal-function-sent": "^7.0.0",
+      "@babel/plugin-proposal-json-strings": "^7.0.0",
+      "@babel/plugin-proposal-logical-assignment-operators": "^7.0.0",
+      "@babel/plugin-proposal-nullish-coalescing-operator": "^7.0.0",
+      "@babel/plugin-proposal-numeric-separator": "^7.0.0",
+      "@babel/plugin-proposal-optional-chaining": "^7.0.0",
+      "@babel/plugin-proposal-pipeline-operator": "^7.0.0",
+      "@babel/plugin-proposal-throw-expressions": "^7.0.0",
+      "@babel/plugin-syntax-dynamic-import": "^7.0.0",
+      "@babel/plugin-syntax-import-meta": "^7.0.0",
+      "@babel/plugin-transform-runtime": "^7.4.3",
+      "@babel/preset-env": "^7.0.0",
+      "@babel/register": "^7.0.0",
+      "nodemon": "^1.18.11"
+    },
+    "dependencies": {
+      "@babel/runtime": "^7.4.3",
+      "lodash": "^4.17.11"
+    }
+  }
+  
