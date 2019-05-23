@@ -1,0 +1,41 @@
+
+{
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "preLaunchTask": "yarn",
+        "name": "C++ Launch",
+        "type": "cppdbg",
+        "request": "launch",
+        "program": "/home/leo/.nvm/versions/node/v6.17.1/bin/node",
+        "args": ["dist/app.js"],
+        "stopAtEntry": false,
+        "cwd": "${workspaceRoot}",
+        "environment": [],
+        "externalConsole": true,
+        "linux": {
+          "MIMode": "gdb",
+          "setupCommands": [
+            {
+              "description": "Enable pretty-printing for gdb",
+              "text": "-enable-pretty-printing",
+              "ignoreFailures": true
+            }
+          ]
+        },
+        "osx": {
+          "MIMode": "lldb"
+        },
+        "windows": {
+          "MIMode": "gdb",
+          "setupCommands": [
+            {
+              "description": "Enable pretty-printing for gdb",
+              "text": "-enable-pretty-printing",
+              "ignoreFailures": true
+            }
+          ]
+        }
+      }
+    ]
+  }

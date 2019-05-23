@@ -4,4 +4,4 @@ const addon = bindings("nativeaddon");
 
 console.log("test");
 
-addon.test()
+addon.createSolution()

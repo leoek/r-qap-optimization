@@ -6,3 +6,9 @@ dist/
 
 # native build artifacts
 build/
+
+# debugging artifacts
+/.vscode/ipch
+
+# yarn
+yarn-error.log

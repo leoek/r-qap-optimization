@@ -43,10 +43,11 @@
     "js:build": "babel -d dist/ src",
     "js:build:debug": "babel --source-maps -d dist/ src",
     "native:build": "node-gyp rebuild",
+    "build:debug": "yarn native:build && yarn js:build:debug",
     "serve": "nodemon dist/app.js",
     "serve:node": "node dist/app.js",
     "serve:debug": "nodemon --inspect dist/app.js",
-    "start": "nodemon -e js,ts,cc --watch src --exec \"yarn native:build && yarn js:build:debug && yarn serve:debug\""
+    "start": "nodemon -e js,ts,cc --watch src --exec \" yarn buid:debug && yarn serve:debug\""
   },
   "devDependencies": {
     "@babel/cli": "^7.0.0",
