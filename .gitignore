@@ -1,2 +1,8 @@
+# js dependencies
 node_modules/
+
+# js build artifcats
 dist/
+
+# native build artifacts
+build/
