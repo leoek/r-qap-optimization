@@ -1,9 +1,11 @@
 import bindings from "bindings";
-import { performance } from "perf_hooks";
 import RQAPParser from "./rqapParser";
 import getParametersFromArgs from "./lib/parameterParser"
+import { getPerformaceTools } from "./helpers";
 
 const addon = bindings("nativeaddon");
+const { performance } = getPerformaceTools()
+
 const parser = new RQAPParser();
 const parameters = getParametersFromArgs()
 console.log("Parameters", parameters)
