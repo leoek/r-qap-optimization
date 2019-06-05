@@ -1,4 +1,5 @@
 import bindings from "bindings";
+import { performance } from "perf_hooks";
 import RQAPParser from "./rqapParser";
 import getParametersFromArgs from "./lib/parameterParser"
 
@@ -8,12 +9,20 @@ const parameters = getParametersFromArgs()
 console.log("Parameters", parameters)
 
 const main = async () => {
-  const parsed = await parser.parseFile({ name: parameters.instanceName });
-  console.log(parsed);
+  const instance = await parser.parseFile({ name: parameters.instanceName });
+  let createdSolutions = 0;
+  const start = performance.now();
+
+  const end = performance.now();
+
+  const solved = true;
+  const runtime = end - start;
+  const runlength = createdSolutions;
+  const seed = null;
+  const bestSol = 0;
+  console.log(`Result for ParamILS: ${solved}, ${runtime}, ${runlength}, ${bestSol}, ${seed}`)
 }
 
 main()
-
-console.log("test");
 
 addon.test()

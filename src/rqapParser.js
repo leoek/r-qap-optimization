@@ -55,7 +55,6 @@ const parseRQAPContent = content => {
           const match = machineMatcher.exec(line);
           if (match){
             const id = match[1];
-            console.log("machine match", match);
             machines[id] = {
               s: parseInt(match[2]),
               r: parseInt(match[3]) || 1
