@@ -45,7 +45,7 @@
     "native:build": "node-gyp rebuild",
     "serve": "nodemon dist/app.js",
     "serve:node": "node dist/app.js",
-    "serve:debug": "nodemon --inspect dist/app.js",
+    "serve:debug": "nodemon --inspect --nolazy dist/app.js",
     "start": "nodemon -e js,ts,cc --watch src --exec \"yarn native:build && yarn js:build:debug && yarn serve:debug\""
   },
   "devDependencies": {

@@ -6,3 +6,6 @@ dist/
 
 # native build artifacts
 build/
+
+# vscode build artifacts
+.vscode/ipch
