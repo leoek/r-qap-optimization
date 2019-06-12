@@ -1,7 +1,7 @@
 import fs from "fs";
 
-import { ERROR } from "./config";
-import { objectValues, newMatrix } from "./helpers";
+import { ERROR } from "../config";
+import { objectValues, newMatrix } from "../helpers";
 const resolvePath = (...paths) => paths.join("/");
 
 const readFile = path => new Promise((resolve, reject) => {
@@ -43,10 +43,10 @@ const parseRQAPContent = content => {
             const id = match[1];
             factories[id] = {
               id: parseInt(id),
-              p: parseInt(match[2]),
-              c: parseInt(match[3]),
+              p: parseInt(match[2]), // Ausfallwahrscheinlichkeit
+              c: parseInt(match[3]), //Kapazität 
               x: parseInt(match[4]),
-              x: parseInt(match[5])
+              y: parseInt(match[5])
             }
           } else {
             throw new Error(ERROR.INVALID_INPUT_SYNTAX);
@@ -56,8 +56,8 @@ const parseRQAPContent = content => {
           if (match){
             const id = match[1];
             machines[id] = {
-              s: parseInt(match[2]),
-              r: parseInt(match[3]) || 1
+              s: parseInt(match[2]), //Größe
+              r: parseInt(match[3]) || 1 //Redundancy
             }
           } else {
             throw new Error(ERROR.INVALID_INPUT_SYNTAX);

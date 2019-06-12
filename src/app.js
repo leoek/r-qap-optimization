@@ -1,9 +1,10 @@
 import bindings from "bindings";
-import RQAPParser from "./rqapParser";
+import RQAPParser from "./lib/rqapParser";
 import getParametersFromArgs from "./lib/parameterParser"
 import { getPerformaceTools, sleep } from "./helpers";
 
 const addon = bindings("nativeaddon");
+const agentaddon = bindings("agentaddon")
 const { performance } = getPerformaceTools()
 
 const parser = new RQAPParser();
@@ -23,8 +24,14 @@ const main = async () => {
     current -= 1;
   }
 
+  const testArray = [1, 2, 3]
 
+  var vec1 = new agentaddon.Agent(20, 10, 3, testArray);
+  const sol = new agentaddon.Solution(1);
+  console.log('vec1', vec1); // Vector { x: 20, y: 10, z: 0 }
 
+  console.log(sol)
+  /*
   while (createdSolutions < parameters.maxSolutions){
     if (current < parameters.agents){
       current += 1;
@@ -33,7 +40,7 @@ const main = async () => {
       await sleep(1000)
     }
   }
-
+  */
 
   const end = performance.now();
 
