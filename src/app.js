@@ -27,10 +27,13 @@ const main = async () => {
   const testArray = [1, 2, 3]
 
   var vec1 = new agentaddon.Agent(20, 10, 3, testArray);
+  var vec2 = new agentaddon.Agent(1,1,1, testArray);
   const sol = new agentaddon.Solution(1);
-  console.log('vec1', vec1); // Vector { x: 20, y: 10, z: 0 }
+  console.log('js vec1', vec1); // Vector { x: 20, y: 10, z: 0 }
 
-  console.log(sol)
+  console.log("js sol", sol);
+
+  vec1.add(vec2, sol, [sol, sol, sol]);
   /*
   while (createdSolutions < parameters.maxSolutions){
     if (current < parameters.agents){

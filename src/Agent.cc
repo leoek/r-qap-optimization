@@ -1,4 +1,5 @@
 #include "Agent.h"
+#include "Solution.h"
 
 using namespace v8;
 using namespace std;
@@ -47,7 +48,7 @@ NAN_METHOD(Agent::New) {
   vec->y = info[1]->NumberValue();
   vec->z = info[2]->NumberValue();
 
-    Local<Array> jsArray = Local<Array>::Cast(info[3]);
+  Local<Array> jsArray = Local<Array>::Cast(info[3]);
 
   vector<int> intarray;
    for (unsigned int i = 0; i < jsArray->Length(); i++)
@@ -71,11 +72,29 @@ NAN_METHOD(Agent::Add) {
   if (!Nan::New(Agent::constructor)->HasInstance(info[0])) {
     return Nan::ThrowError(Nan::New("Agent::Add - expected argument to be instance of Agent").ToLocalChecked());
   }
+  if (!Nan::New(Solution::constructor)->HasInstance(info[1])) {
+    return Nan::ThrowError(Nan::New("Agent::Add - expected argument to be instance of Solution").ToLocalChecked());
+  }
+
+  Local<Array> jsArray = Local<Array>::Cast(info[2]);
+
+  vector<Solution*> solArray;
+   for (unsigned int i = 0; i < jsArray->Length(); i++)
+  {
+    Handle<Value> val = jsArray->Get(i);
+    Solution * solVal = Nan::ObjectWrap::Unwrap<Solution>(val->ToObject());
+    printf("solval x value %f", solVal->x);
+    solArray.push_back(solVal);
+  }
+
   // unwrap the Agent passed as argument
   Agent * otherVec = Nan::ObjectWrap::Unwrap<Agent>(info[0]->ToObject());
+  Solution * otherSolution = Nan::ObjectWrap::Unwrap<Solution>(info[1]->ToObject());
+
+  printf("sol x value %f", otherSolution->x);
 
   // specify argument counts and constructor arguments
-  const int argc = 3;
+  const int argc = 4;
   v8::Local<v8::Value> argv[argc] = {
     Nan::New(self->x + otherVec->x),
     Nan::New(self->y + otherVec->y),
@@ -83,11 +102,11 @@ NAN_METHOD(Agent::Add) {
   };
 
   // get a local handle to our constructor function
-  v8::Local<v8::Function> constructorFunc = Nan::New(Agent::constructor)->GetFunction();
+  //v8::Local<v8::Function> constructorFunc = Nan::New(Agent::constructor)->GetFunction();
   // create a new JS instance from arguments
-  v8::Local<v8::Object> jsSumVec = Nan::NewInstance(constructorFunc, argc, argv).ToLocalChecked();
+  //v8::Local<v8::Object> jsSumVec = Nan::NewInstance(constructorFunc, argc, argv).ToLocalChecked();
 
-  info.GetReturnValue().Set(jsSumVec);
+  //info.GetReturnValue().Set(jsSumVec);
 }
 
 NAN_GETTER(Agent::HandleGetters) {
