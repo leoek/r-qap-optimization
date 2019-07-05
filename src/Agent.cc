@@ -83,7 +83,7 @@ NAN_METHOD(Agent::Add) {
   {
     Handle<Value> val = jsArray->Get(i);
     Solution * solVal = Nan::ObjectWrap::Unwrap<Solution>(val->ToObject());
-    printf("solval x value %f", solVal->x);
+    printf("solval x value %f", solVal->quality);
     solArray.push_back(solVal);
   }
 
@@ -91,7 +91,7 @@ NAN_METHOD(Agent::Add) {
   Agent * otherVec = Nan::ObjectWrap::Unwrap<Agent>(info[0]->ToObject());
   Solution * otherSolution = Nan::ObjectWrap::Unwrap<Solution>(info[1]->ToObject());
 
-  printf("sol x value %f", otherSolution->x);
+  printf("sol quality %f", otherSolution->quality);
 
   // specify argument counts and constructor arguments
   const int argc = 4;

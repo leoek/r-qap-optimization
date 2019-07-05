@@ -5,17 +5,19 @@
 
 class Solution : public Nan::ObjectWrap {
 public:
-  double x;
+  double quality;
+  std::vector<int> permutation;
 
   static NAN_MODULE_INIT(Init);
   static NAN_METHOD(New);
+  static NAN_METHOD(Add);
+
+  static NAN_METHOD(GetLength);
 
   static NAN_GETTER(HandleGetters);
   static NAN_SETTER(HandleSetters);
 
   static Nan::Persistent<v8::FunctionTemplate> constructor;
 };
-
-NAN_METHOD(CreateSolution);
 
 #endif  // AGENT_ADDON_SOLUTION_H_

@@ -28,10 +28,10 @@ const main = async () => {
 
   var vec1 = new agentaddon.Agent(20, 10, 3, testArray);
   var vec2 = new agentaddon.Agent(1,1,1, testArray);
-  const sol = new agentaddon.Solution(1);
+  const sol = new agentaddon.Solution([1,2,3,4,5], 9.78);
   console.log('js vec1', vec1); // Vector { x: 20, y: 10, z: 0 }
 
-  console.log("js sol", sol);
+  console.log("js sol", sol, sol.getLength());
 
   vec1.add(vec2, sol, [sol, sol, sol]);
   /*
@@ -53,6 +53,8 @@ const main = async () => {
   const seed = null;
   const bestSol = 0;
   console.log(`Result for ParamILS: ${solved}, ${runtime}, ${runlength}, ${bestSol}, ${seed}`)
+
+  //await sleep(100000)
 }
 
 main()
