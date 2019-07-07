@@ -73,12 +73,17 @@ NAN_METHOD(Solution::Add) {
     return Nan::ThrowError(Nan::New("Solution::Add - expected argument 0 to be an integer").ToLocalChecked());
   }
   if(info[1]->IsBoolean()) {
-    bool = info[1]->BooleanValue()
+    check = info[1]->BooleanValue();
   }
-
+  /**
+   * #TODO check whether this is possible if check=true
+   * not sure whether this is useful here yet
+   **/
+  
   int newVal = info[0]->IntegerValue();
-  self->permutation.push_back();
+  self->permutation.push_back(newVal);
 
+  int size = self->permutation.size();
   info.GetReturnValue().Set(size);
 }
 

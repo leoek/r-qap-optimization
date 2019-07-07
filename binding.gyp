@@ -7,7 +7,7 @@
     },
     {
       "target_name": "agentaddon",
-      "sources": [ "src/index.cc", "src/Agent.cc", "src/Solution.cc" ],
+      "sources": [ "src/index.cc", "src/Agent.cc", "src/Solution.cc", "src/Fabric.cc", "src/Machine.cc" ],
       "include_dirs": [ "<!(node -e \"require('nan')\")" ]
     }
   ]

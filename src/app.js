@@ -29,6 +29,7 @@ const main = async () => {
   var vec1 = new agentaddon.Agent(20, 10, 3, testArray);
   var vec2 = new agentaddon.Agent(1,1,1, testArray);
   const sol = new agentaddon.Solution([1,2,3,4,5], 9.78);
+  sol.add(4);
   console.log('js vec1', vec1); // Vector { x: 20, y: 10, z: 0 }
 
   console.log("js sol", sol, sol.getLength());
