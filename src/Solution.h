@@ -10,9 +10,12 @@ public:
 
   static NAN_MODULE_INIT(Init);
   static NAN_METHOD(New);
-  static NAN_METHOD(Add);
+  int Add(int);
+  int Add(int, bool);
+  static NAN_METHOD(_Add);
 
-  static NAN_METHOD(GetLength);
+  int GetLength();
+  static NAN_METHOD(_GetLength);
 
   static NAN_GETTER(HandleGetters);
   static NAN_SETTER(HandleSetters);

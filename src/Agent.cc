@@ -1,5 +1,7 @@
 #include "Agent.h"
 #include "Solution.h"
+#include "Factory.h"
+#include "Machine.h"
 
 using namespace v8;
 using namespace std;
@@ -19,6 +21,7 @@ NAN_MODULE_INIT(Agent::Init) {
   Nan::SetAccessor(ctor->InstanceTemplate(), Nan::New("intarray").ToLocalChecked(), Agent::HandleGetters, Agent::HandleSetters);
 
   Nan::SetPrototypeMethod(ctor, "add", Add);
+  Nan::SetPrototypeMethod(ctor, "createSolution", CreateSolution);
 
   target->Set(Nan::New("Agent").ToLocalChecked(), ctor->GetFunction());
 }
@@ -29,37 +32,34 @@ NAN_METHOD(Agent::New) {
     return Nan::ThrowError(Nan::New("Agent::New - called without new keyword").ToLocalChecked());
   }
 
-  // expect exactly 3 arguments
-  if(info.Length() != 4) {
-    return Nan::ThrowError(Nan::New("Agent::New - expected arguments x, y, z").ToLocalChecked());
-  }
-
-  // expect arguments to be numbers
-  if(!info[0]->IsNumber() || !info[1]->IsNumber()) {
-    return Nan::ThrowError(Nan::New("Agent::New - expected arguments to be numbers").ToLocalChecked());
+  if(info.Length() != 2) {
+    return Nan::ThrowError(Nan::New("Agent::New - unexpected number of arguments").ToLocalChecked());
   }
 
   // create a new instance and wrap our javascript instance
-  Agent* vec = new Agent();
-  vec->Wrap(info.Holder());
+  Agent* self = new Agent();
+  self->Wrap(info.Holder());
 
   // initialize it's values
-  vec->x = info[0]->NumberValue();
-  vec->y = info[1]->NumberValue();
-  vec->z = info[2]->NumberValue();
-
-  Local<Array> jsArray = Local<Array>::Cast(info[3]);
-
-  vector<int> intarray;
-   for (unsigned int i = 0; i < jsArray->Length(); i++)
+  Local<Array> factoryJsArray = Local<Array>::Cast(info[0]);
+  vector<Factory*> factoryArray;
+   for (unsigned int i = 0; i < factoryJsArray->Length(); i++)
   {
-    Handle<Value> val = jsArray->Get(i);
-    int numVal = val->NumberValue();
-    intarray.push_back(numVal);
+    Handle<Value> val = factoryJsArray->Get(i);
+    Factory * factoryVal = Nan::ObjectWrap::Unwrap<Factory>(val->ToObject());
+    factoryArray.push_back(factoryVal);
   }
+  self->factories = factoryArray;
 
-  vec->intarray = intarray;
-
+  Local<Array> machineJsArray = Local<Array>::Cast(info[1]);
+  vector<Machine*> machineArray;
+   for (unsigned int i = 0; i < machineJsArray->Length(); i++)
+  {
+    Handle<Value> val = machineJsArray->Get(i);
+    Machine * machineVal = Nan::ObjectWrap::Unwrap<Machine>(val->ToObject());
+    machineArray.push_back(machineVal);
+  }
+  self->machines = machineArray;
 
   // return the wrapped javascript instance
   info.GetReturnValue().Set(info.Holder());
@@ -149,4 +149,87 @@ NAN_SETTER(Agent::HandleSetters) {
   } else if (propertyName == "intarray"){
 
   }
+}
+
+int Agent::GetNextValue(){
+
+  Machine * currentMachine = machines.at(currentMachineIndex);
+  vector<int> availableFactories;
+  for (unsigned int i = 0; i < currentFactories.size(); i++){
+    if (currentFactories.at(i)->GetUnusedCapacity() >= currentMachine->size){
+      availableFactories.push_back(i);
+    }
+  }
+
+  vector<Solution*> chosenPopulation;
+  int selected = -1;
+  random_selector<> selector{};
+  // try until a new index is selected
+  while (selected < 0){
+    int populationSelector = GetRndNumberFromRange(0, rndWeight + gBestPopulationWeight + pBestPopulationWeight);
+    if (populationSelector < rndWeight){
+      // Select a random Factory from the available ones
+      selected = selector(availableFactories);
+    } else {
+      int possibleIndex = -1;
+      if (populationSelector < rndWeight + gBestPopulationWeight && globalBestSolutions.size() >= 1){
+        Solution * srcSol = selector(globalBestSolutions);
+        possibleIndex = srcSol->permutation.at(currentMachineIndex);
+
+      } else if (populationSelector < rndWeight + gBestPopulationWeight + pBestPopulationWeight && personalBestSolutions.size() >= 1){
+        Solution * srcSol = selector(personalBestSolutions);
+        possibleIndex = srcSol->permutation.at(currentMachineIndex);
+      }
+      // Check whether there is a possible index which was copied from a previous Solution
+      if (possibleIndex >= 0){
+        // Check whether the machine fits into that factory (get the factory at that index)
+        // select that index if it is feasible
+        if (possibleIndex >= 0 && currentFactories.at(possibleIndex)->GetUnusedCapacity() >= machines.at(currentMachineIndex)->size){
+          selected = possibleIndex;
+        }
+      }
+    }
+  }
+  // Use the size of currenMachine inthe chosen factory
+  currentFactories.at(selected)->UseCapacity(currentMachine->size);
+  return selected;
+}
+
+void Agent::ResetCurrentFactories(){
+  vector<Factory*> newFactories;
+  for (unsigned int i = 0; i < factories.size(); i++){
+    Factory * copy = new Factory(* factories.at(i));
+    newFactories.push_back(copy);
+  }
+  currentFactories = newFactories;
+}
+
+int Agent::RateSolution(Solution &sol){
+  
+}
+
+
+void Agent::Solve(Solution &sol){
+  ResetCurrentFactories();
+  currentMachineIndex = 0;
+  while(currentMachineIndex < machines.size()){
+    sol.Add(GetNextValue());
+    currentMachineIndex++;
+  }
+  // Rate the generated solution
+}
+
+NAN_METHOD(Agent::CreateSolution) {
+  // unwrap this Agent
+  Agent * self = Nan::ObjectWrap::Unwrap<Agent>(info.This());
+
+  const int argc = 0;
+  v8::Local<v8::Value> argv[argc] = {};
+  // get a local handle to our constructor function
+  Local<Function> constructorFunc = Nan::New(Solution::constructor)->GetFunction();
+  // create a new JS instance from arguments
+  Local<Object> _sol = Nan::NewInstance(constructorFunc, argc, argv).ToLocalChecked();
+  Solution * sol = Nan::ObjectWrap::Unwrap<Solution>(_sol);
+  self->Solve(*sol);
+  info.GetReturnValue().Set(_sol);
 }

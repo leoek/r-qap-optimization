@@ -30,7 +30,7 @@ NAN_METHOD(Machine::New) {
 
   // expect arguments to be numbers
   if(!info[0]->IsNumber() || !info[1]->IsNumber()) {
-    return Nan::ThrowError(Nan::New("Agent::New - expected arguments to be numbers").ToLocalChecked());
+    return Nan::ThrowError(Nan::New("Machine::New - expected arguments to be numbers").ToLocalChecked());
   }
 
   // create a new instance and wrap our javascript instance

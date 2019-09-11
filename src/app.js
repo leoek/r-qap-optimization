@@ -1,7 +1,7 @@
 import bindings from "bindings";
 import RQAPParser from "./lib/rqapParser";
 import getParametersFromArgs from "./lib/parameterParser"
-import { getPerformaceTools, sleep } from "./helpers";
+import { getPerformaceTools, sleep, objectValues } from "./helpers";
 
 const addon = bindings("nativeaddon");
 const agentaddon = bindings("agentaddon")
@@ -24,17 +24,38 @@ const main = async () => {
     current -= 1;
   }
 
-  const testArray = [1, 2, 3]
+  console.log(instance);
 
-  var vec1 = new agentaddon.Agent(20, 10, 3, testArray);
-  var vec2 = new agentaddon.Agent(1,1,1, testArray);
+  console.log("\n\n");
+  const factories = objectValues(instance.factories).map(item => new agentaddon.Factory(item.p, item.c, item.x, item.y))
+  const machines = objectValues(instance.machines).map(item => new agentaddon.Machine(item.s, item.r));
+  const flowMatrix = new agentaddon.Matrix(instance.flowMatrix);
+  const changeOverMatrix = new agentaddon.Matrix(instance.changeOverMatrix);
+  const distanceMatrix = new agentaddon.Matrix(instance.distanceMatrix); 
+
+  console.log(flowMatrix, changeOverMatrix, distanceMatrix);
+
+  const agent = new agentaddon.Agent(factories, machines)
+
+  const solution = agent.createSolution();
+  console.log(solution);
+
+  let i = 0;
+  while (++i < 1000){
+    const solution = agent.createSolution();
+    //console.log(solution);
+  }
+
+  console.log(agent);
+
   const sol = new agentaddon.Solution([1,2,3,4,5], 9.78);
   sol.add(4);
-  console.log('js vec1', vec1); // Vector { x: 20, y: 10, z: 0 }
 
-  console.log("js sol", sol, sol.getLength());
-
-  vec1.add(vec2, sol, [sol, sol, sol]);
+  console.log("\n\n")
+  const factory = new agentaddon.Factory(1, 2, 1, 1);
+  console.log(factory.useCapacity(1));
+  console.log(factory.useCapacity(1));
+  console.log(factory.useCapacity(1));
   /*
   while (createdSolutions < parameters.maxSolutions){
     if (current < parameters.agents){

@@ -15,8 +15,8 @@ NAN_MODULE_INIT(Solution::Init) {
   Nan::SetAccessor(ctor->InstanceTemplate(), Nan::New("quality").ToLocalChecked(), Solution::HandleGetters, Solution::HandleSetters);
   Nan::SetAccessor(ctor->InstanceTemplate(), Nan::New("permutation").ToLocalChecked(), Solution::HandleGetters, Solution::HandleSetters);
 
-  Nan::SetPrototypeMethod(ctor, "add", Add);
-  Nan::SetPrototypeMethod(ctor, "getLength", GetLength);
+  Nan::SetPrototypeMethod(ctor, "add", _Add);
+  Nan::SetPrototypeMethod(ctor, "getLength", _GetLength);
 
   target->Set(Nan::New("Solution").ToLocalChecked(), ctor->GetFunction());
 }
@@ -27,7 +27,7 @@ NAN_METHOD(Solution::New) {
     return Nan::ThrowError(Nan::New("Solution::New - called without new keyword").ToLocalChecked());
   }
 
-  // expect exactly <2 arguments
+  // expect <2 arguments
   if(info.Length() > 2) {
     return Nan::ThrowError(Nan::New("Solution::New - expected optional arguments int[] and double").ToLocalChecked());
   }
@@ -57,14 +57,30 @@ NAN_METHOD(Solution::New) {
   info.GetReturnValue().Set(info.Holder());
 }
 
-NAN_METHOD(Solution::GetLength) {
+int Solution::GetLength(){
+  return permutation.size();
+}
+
+NAN_METHOD(Solution::_GetLength) {
   // unwrap this Solution
   Solution * self = Nan::ObjectWrap::Unwrap<Solution>(info.This());
-  int size = self->permutation.size();
+  int size = (*self).GetLength();
   info.GetReturnValue().Set(size);
 }
 
-NAN_METHOD(Solution::Add) {
+int Solution::Add(int value){
+  return Add(value, True);
+}
+int Solution::Add(int value, bool check){
+  /**
+   * #TODO check whether this is possible if check=true
+   * not sure whether this is useful here yet
+   **/
+  permutation.push_back(value);
+  return permutation.size();
+}
+
+NAN_METHOD(Solution::_Add) {
   // unwrap this Solution
   Solution * self = Nan::ObjectWrap::Unwrap<Solution>(info.This());
   bool check = true;
@@ -75,15 +91,9 @@ NAN_METHOD(Solution::Add) {
   if(info[1]->IsBoolean()) {
     check = info[1]->BooleanValue();
   }
-  /**
-   * #TODO check whether this is possible if check=true
-   * not sure whether this is useful here yet
-   **/
-  
+   
   int newVal = info[0]->IntegerValue();
-  self->permutation.push_back(newVal);
-
-  int size = self->permutation.size();
+  int size = (*self).Add(newVal, check);
   info.GetReturnValue().Set(size);
 }
 
@@ -97,7 +107,6 @@ NAN_GETTER(Solution::HandleGetters) {
     v8::Local<v8::Array> jsArray = Nan::New<v8::Array>(self->permutation.size());
     for (size_t i = 0; i < self->permutation.size(); i++)
     {
-        printf("value %lu %d", i, self->permutation[i]);
         Nan::Set(jsArray, i, Nan::New<Number>(self->permutation[i]));
     }
     info.GetReturnValue().Set(jsArray);
