@@ -1,7 +1,11 @@
+import bindings from "bindings";
 import fs from "fs";
 
 import { ERROR } from "../config";
 import { objectValues, newMatrix } from "../helpers";
+
+const agentaddon = bindings("agentaddon");
+
 const resolvePath = (...paths) => paths.join("/");
 
 const readFile = path => new Promise((resolve, reject) => {
@@ -117,6 +121,21 @@ class RQAPParser {
             }
           }).catch(error => reject(error))
       })
+  }
+}
+
+export const toNativeInstance = instance => {
+  const factories = objectValues(instance.factories).map(({ probability, capacity, x, y }) => new agentaddon.Factory(probability, capacity, x, y))
+  const machines = objectValues(instance.machines).map(({ size, redundancy }) => new agentaddon.Machine(size, redundancy));
+  const flowMatrix = new agentaddon.Matrix(instance.flowMatrix);
+  const changeOverMatrix = new agentaddon.Matrix(instance.changeOverMatrix);
+  const distanceMatrix = new agentaddon.Matrix(instance.distanceMatrix); 
+  return {
+    factories,
+    machines,
+    flowMatrix,
+    changeOverMatrix,
+    distanceMatrix
   }
 }
 

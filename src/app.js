@@ -1,10 +1,10 @@
 import bindings from "bindings";
-import RQAPParser, { enhanceWithDistanceMatrix } from "./lib/rqapParser";
+import RQAPParser, { enhanceWithDistanceMatrix, toNativeInstance } from "./lib/rqapParser";
 import getParametersFromArgs from "./lib/parameterParser"
-import { getPerformaceTools, sleep, objectValues } from "./helpers";
+import { getPerformaceTools, sleep, objectValues, compose } from "./helpers";
 
 const addon = bindings("nativeaddon");
-const agentaddon = bindings("agentaddon")
+const agentaddon = bindings("agentaddon");
 const { performance } = getPerformaceTools()
 
 const parser = new RQAPParser();
@@ -12,7 +12,14 @@ const parameters = getParametersFromArgs()
 console.log("Parameters", parameters)
 
 const main = async () => {
-  const instance = enhanceWithDistanceMatrix(await parser.parseFile({ name: parameters.instanceName }));
+  // Parse the instance into a js Object
+  const jsInstance = await parser.parseFile({ name: parameters.instanceName });
+  // Enhance the parsed instance with the distance matrix
+  // Create native instances of the entities
+  const instance = compose(
+    toNativeInstance,
+    enhanceWithDistanceMatrix
+  )(jsInstance);
   let createdSolutions = 0;
   const start = performance.now();
 
@@ -27,14 +34,8 @@ const main = async () => {
   console.log(instance);
 
   console.log("\n\n");
-  const factories = objectValues(instance.factories).map(({ probability, capacity, x, y }) => new agentaddon.Factory(probability, capacity, x, y))
-  const machines = objectValues(instance.machines).map(({ size, redundancy }) => new agentaddon.Machine(size, redundancy));
-  const flowMatrix = new agentaddon.Matrix(instance.flowMatrix);
-  const changeOverMatrix = new agentaddon.Matrix(instance.changeOverMatrix);
-  const distanceMatrix = new agentaddon.Matrix(instance.distanceMatrix); 
 
-  console.log(flowMatrix, changeOverMatrix, distanceMatrix);
-
+  const { factories, machines } = instance;
   const agent = new agentaddon.Agent(factories, machines)
 
   const solution = agent.createSolution();

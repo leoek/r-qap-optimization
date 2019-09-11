@@ -25,3 +25,9 @@ export const getPerformaceTools = () => {
 }
 
 export const newMatrix = (x, y, initVal = 0) => [...Array(x)].map(_ => [...Array(y)].map(_ => initVal));
+
+export const compose = (...fns) =>
+  fns.reduceRight((prevFn, nextFn) =>
+    (...args) => nextFn(prevFn(...args)),
+    value => value
+  );
