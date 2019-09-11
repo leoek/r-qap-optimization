@@ -1,5 +1,5 @@
 import bindings from "bindings";
-import RQAPParser from "./lib/rqapParser";
+import RQAPParser, { enhanceWithDistanceMatrix } from "./lib/rqapParser";
 import getParametersFromArgs from "./lib/parameterParser"
 import { getPerformaceTools, sleep, objectValues } from "./helpers";
 
@@ -12,7 +12,7 @@ const parameters = getParametersFromArgs()
 console.log("Parameters", parameters)
 
 const main = async () => {
-  const instance = await parser.parseFile({ name: parameters.instanceName });
+  const instance = enhanceWithDistanceMatrix(await parser.parseFile({ name: parameters.instanceName }));
   let createdSolutions = 0;
   const start = performance.now();
 
@@ -27,8 +27,8 @@ const main = async () => {
   console.log(instance);
 
   console.log("\n\n");
-  const factories = objectValues(instance.factories).map(item => new agentaddon.Factory(item.p, item.c, item.x, item.y))
-  const machines = objectValues(instance.machines).map(item => new agentaddon.Machine(item.s, item.r));
+  const factories = objectValues(instance.factories).map(({ probability, capacity, x, y }) => new agentaddon.Factory(probability, capacity, x, y))
+  const machines = objectValues(instance.machines).map(({ size, redundancy }) => new agentaddon.Machine(size, redundancy));
   const flowMatrix = new agentaddon.Matrix(instance.flowMatrix);
   const changeOverMatrix = new agentaddon.Matrix(instance.changeOverMatrix);
   const distanceMatrix = new agentaddon.Matrix(instance.distanceMatrix); 

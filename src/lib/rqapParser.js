@@ -28,7 +28,7 @@ const parseRQAPContent = content => {
   let modeIndex = 0;
   const factories = {};
   const machines = {};
-  let flowMatrix, coMatrix, flow_i, co_i;
+  let flowMatrix, changeOverMatrix, flow_i, co_i;
   // id	Ausfallwahrscheinlichkeit p_i (float)	Kapazität c_i (int)	x-Koordinate x_i (int)	y-Koordinate y_i (int)
   const factoryMatcher = new RegExp('([0-9]+) ([0-9\.]+) ([0-9]+) ([0-9]+) ([0-9]+)');
   // id	Größe s_i (int)	redundancy r_i (int, default=1)
@@ -43,8 +43,8 @@ const parseRQAPContent = content => {
             const id = match[1];
             factories[id] = {
               id: parseInt(id),
-              p: parseInt(match[2]), // Ausfallwahrscheinlichkeit
-              c: parseInt(match[3]), //Kapazität 
+              probability: parseInt(match[2]), // Ausfallwahrscheinlichkeit
+              capacity: parseInt(match[3]), //Kapazität 
               x: parseInt(match[4]),
               y: parseInt(match[5])
             }
@@ -56,8 +56,8 @@ const parseRQAPContent = content => {
           if (match){
             const id = match[1];
             machines[id] = {
-              s: parseInt(match[2]), //Größe
-              r: parseInt(match[3]) || 1 //Redundancy
+              size: parseInt(match[2]), //Größe
+              redundancy: parseInt(match[3]) || 1 //Redundancy
             }
           } else {
             throw new Error(ERROR.INVALID_INPUT_SYNTAX);
@@ -74,14 +74,14 @@ const parseRQAPContent = content => {
         })
         flow_i += 1;
       } else if (modes[modeIndex] === PARSE_MODE.CHANGEOVER_COST){
-        if (!coMatrix){
+        if (!changeOverMatrix){
           const k = objectValues(factories).length
-          coMatrix = newMatrix(k,k);
+          changeOverMatrix = newMatrix(k,k);
           co_i = 0;
         }
         const lineValues = line.split(" ");
         lineValues.forEach((value, j) => {
-          coMatrix[co_i][j] = value;
+          changeOverMatrix[co_i][j] = value;
         })
         co_i += 1;
       }
@@ -91,9 +91,12 @@ const parseRQAPContent = content => {
     factories,
     machines,
     flowMatrix,
-    coMatrix
+    changeOverMatrix
   }
 }
+
+const calculateDistanceMatrix = factories => Object.keys(factories).map(idA => Object.keys(factories).map(idB => Math.sqrt(Math.pow(factories[idB].x - factories[idA].x, 2) + Math.pow(factories[idB].y - factories[idB].y, 2))))
+export const enhanceWithDistanceMatrix = ({ factories, ...rest }) => ({ factories, distanceMatrix: calculateDistanceMatrix(factories), ...rest })
 
 class RQAPParser {
 
