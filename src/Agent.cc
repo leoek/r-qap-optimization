@@ -1,7 +1,4 @@
 #include "Agent.h"
-#include "Solution.h"
-#include "Factory.h"
-#include "Machine.h"
 
 using namespace v8;
 using namespace std;
@@ -32,8 +29,18 @@ NAN_METHOD(Agent::New) {
     return Nan::ThrowError(Nan::New("Agent::New - called without new keyword").ToLocalChecked());
   }
 
-  if(info.Length() != 2) {
+  if(info.Length() != 5) {
     return Nan::ThrowError(Nan::New("Agent::New - unexpected number of arguments").ToLocalChecked());
+  }
+  // #NIT Arrays currently have no explicit type check
+  if (!Nan::New(Matrix::constructor)->HasInstance(info[2])) {
+    return Nan::ThrowError(Nan::New("Agent::New - expected argument 3 to be instance of Matrix").ToLocalChecked());
+  }
+  if (!Nan::New(Matrix::constructor)->HasInstance(info[3])) {
+    return Nan::ThrowError(Nan::New("Agent::New - expected argument 4 to be instance of Matrix").ToLocalChecked());
+  }
+  if (!Nan::New(Matrix::constructor)->HasInstance(info[4])) {
+    return Nan::ThrowError(Nan::New("Agent::New - expected argument 5 to be instance of Matrix").ToLocalChecked());
   }
 
   // create a new instance and wrap our javascript instance
@@ -61,6 +68,10 @@ NAN_METHOD(Agent::New) {
   }
   self->machines = machineArray;
 
+  self->flowMatrix = Nan::ObjectWrap::Unwrap<Matrix>(info[2]->ToObject());
+  self->changeOverMatrix = Nan::ObjectWrap::Unwrap<Matrix>(info[3]->ToObject());
+  self->distanceMatrix = Nan::ObjectWrap::Unwrap<Matrix>(info[4]->ToObject());
+  
   // return the wrapped javascript instance
   info.GetReturnValue().Set(info.Holder());
 }
@@ -154,6 +165,10 @@ NAN_SETTER(Agent::HandleSetters) {
 int Agent::GetNextValue(){
 
   Machine * currentMachine = machines.at(currentMachineIndex);
+  // #PERFORMANCE
+  // check the capacity requirement after selecting randomly
+  // remove from availableFactories if not enough space
+  // and select randomly again
   vector<int> availableFactories;
   for (unsigned int i = 0; i < currentFactories.size(); i++){
     if (currentFactories.at(i)->GetUnusedCapacity() >= currentMachine->size){
@@ -171,6 +186,8 @@ int Agent::GetNextValue(){
       // Select a random Factory from the available ones
       selected = selector(availableFactories);
     } else {
+      // #PERFORMANCE
+      // Cache those which are not possible
       int possibleIndex = -1;
       if (populationSelector < rndWeight + gBestPopulationWeight && globalBestSolutions.size() >= 1){
         Solution * srcSol = selector(globalBestSolutions);
@@ -208,7 +225,6 @@ int Agent::RateSolution(Solution &sol){
   
 }
 
-
 void Agent::Solve(Solution &sol){
   ResetCurrentFactories();
   currentMachineIndex = 0;
@@ -217,6 +233,16 @@ void Agent::Solve(Solution &sol){
     currentMachineIndex++;
   }
   // Rate the generated solution
+  // #TODO rate all criteria (currently only flow*distance)
+  int sum = 0;
+  for (unsigned int m_i = 0; m_i < machines.size(); m_i++){
+    for (unsigned int m_k = 0; m_k < machines.size(); m_k++){
+      int flow = flowMatrix->GetValue(m_i, m_k);
+      int distance = distanceMatrix->GetValue(sol.permutation[m_i], sol.permutation[m_k]);
+      sum += flow * distance;
+    }
+  }
+  sol.quality = sum;
 }
 
 NAN_METHOD(Agent::CreateSolution) {

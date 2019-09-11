@@ -31,14 +31,13 @@ const main = async () => {
     current -= 1;
   }
 
+  const { factories, machines, flowMatrix, changeOverMatrix, distanceMatrix } = instance;
   console.log(instance);
-
   console.log("\n\n");
-
-  const { factories, machines } = instance;
-  const agent = new agentaddon.Agent(factories, machines)
-
+  
+  const agent = new agentaddon.Agent(factories, machines, flowMatrix, changeOverMatrix, distanceMatrix)
   const solution = agent.createSolution();
+
   console.log(solution);
 
   let i = 0;
@@ -47,7 +46,7 @@ const main = async () => {
     //console.log(solution);
   }
 
-  console.log(agent);
+  /*l
 
   const sol = new agentaddon.Solution([1,2,3,4,5], 9.78);
   sol.add(4);
@@ -57,6 +56,8 @@ const main = async () => {
   console.log(factory.useCapacity(1));
   console.log(factory.useCapacity(1));
   console.log(factory.useCapacity(1));
+  /*
+  
   /*
   while (createdSolutions < parameters.maxSolutions){
     if (current < parameters.agents){
@@ -82,4 +83,4 @@ const main = async () => {
 
 main()
 
-addon.test()
+//addon.test()

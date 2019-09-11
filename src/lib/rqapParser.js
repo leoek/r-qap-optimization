@@ -99,7 +99,8 @@ const parseRQAPContent = content => {
   }
 }
 
-const calculateDistanceMatrix = factories => Object.keys(factories).map(idA => Object.keys(factories).map(idB => Math.sqrt(Math.pow(factories[idB].x - factories[idA].x, 2) + Math.pow(factories[idB].y - factories[idB].y, 2))))
+const calculateDistance = (a, b) => Math.round(Math.sqrt(Math.pow(b.x - a.x, 2) + Math.pow(b.y - a.y, 2)))
+const calculateDistanceMatrix = factories => Object.keys(factories).map(idA => Object.keys(factories).map(idB => calculateDistance(factories[idA], factories[idB])))
 export const enhanceWithDistanceMatrix = ({ factories, ...rest }) => ({ factories, distanceMatrix: calculateDistanceMatrix(factories), ...rest })
 
 class RQAPParser {
@@ -129,7 +130,7 @@ export const toNativeInstance = instance => {
   const machines = objectValues(instance.machines).map(({ size, redundancy }) => new agentaddon.Machine(size, redundancy));
   const flowMatrix = new agentaddon.Matrix(instance.flowMatrix);
   const changeOverMatrix = new agentaddon.Matrix(instance.changeOverMatrix);
-  const distanceMatrix = new agentaddon.Matrix(instance.distanceMatrix); 
+  const distanceMatrix = new agentaddon.Matrix(instance.distanceMatrix);
   return {
     factories,
     machines,

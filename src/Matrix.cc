@@ -82,11 +82,13 @@ NAN_GETTER(Matrix::HandleGetters) {
 
 int Matrix::GetValue(int a, int b, bool check){
   // omit the out of bounds check for better performance
-  if(a >= matrix.size() ) {
-    Nan::ThrowError(Nan::New("Matrix::GetValue(int a, int b) a was out of bounds").ToLocalChecked());
-  }
-  if(b >= matrix[a].size()) {
-    Nan::ThrowError(Nan::New("Matrix::GetValue(int a, int b) b was out of bounds").ToLocalChecked());
+  if (check){
+    if(a >= matrix.size() ) {
+      Nan::ThrowError(Nan::New("Matrix::GetValue(int a, int b) a was out of bounds").ToLocalChecked());
+    }
+    if(b >= matrix.size()) {
+      Nan::ThrowError(Nan::New("Matrix::GetValue(int a, int b) b was out of bounds").ToLocalChecked());
+    }
   }
   return matrix[a][b];
 }

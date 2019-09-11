@@ -8,15 +8,20 @@
 #include "Machine.h"
 #include "rndSelector.cc"
 #include "helperFunctions.h"
+#include "Matrix.h"
 
 class Agent : public Nan::ObjectWrap {
 public:
   double x;
   double y;
   double z;
+  std::vector<int> intarray;
+
   std::vector<Machine*> machines;
   std::vector<Factory*> factories;
-  std::vector<int> intarray;
+  Matrix * flowMatrix;
+  Matrix * changeOverMatrix;
+  Matrix * distanceMatrix; 
 
   std::vector<Solution*> globalBestSolutions;
   int maxPersonalBest = 3;
