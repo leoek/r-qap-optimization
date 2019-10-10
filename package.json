@@ -47,6 +47,7 @@
     "serve:node": "node dist/app.js",
     "serve:debug": "nodemon --inspect --nolazy dist/app.js",
     "start": "nodemon -e js,ts,cc,h --watch src --exec \"yarn native:build && yarn js:build:debug && yarn serve:debug\"",
+    "js:start": "nodemon -e js,ts --watch src --exec \"yarn js:build:debug && yarn serve:debug\"",
     "native:start": "nodemon -e cc,h --watch src --exec \"yarn native:build\""
   },
   "devDependencies": {
