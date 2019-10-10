@@ -31,3 +31,9 @@ export const compose = (...fns) =>
     (...args) => nextFn(prevFn(...args)),
     value => value
   );
+
+  export const asyncCompose = (...fns) =>
+  fns.reduceRight((prevFn, nextFn) =>
+    async (...args) => nextFn(await prevFn(...args)),
+    value => value
+  );

@@ -1,22 +1,6 @@
-import bindings from "bindings";
-import fs from "fs";
-
 import { ERROR } from "../config";
-import { objectValues, newMatrix } from "../helpers";
-
-const agentaddon = bindings("agentaddon");
-
-const resolvePath = (...paths) => paths.join("/");
-
-const readFile = path => new Promise((resolve, reject) => {
-  fs.readFile(path, 'utf8', function(err, contents) {
-      if (err){
-          reject(err);
-      } else {
-          resolve(contents);
-      }
-  });
-})
+import { objectValues, newMatrix, compose, asyncCompose } from "../helpers";
+import createParser, { toNativeInstance } from "./parser";
 
 const PARSE_MODE = {
   FACTORY: "factory",
@@ -26,6 +10,17 @@ const PARSE_MODE = {
 }
 
 const modes = objectValues(PARSE_MODE);
+
+/**
+ * Js factory type definition
+ * @typedef {object} jsFactory
+ * @property {number} jsFactory.id
+ * @property {number} jsFactory.probability
+ * @property {number} jsFactory.capacity
+ * @property {number} jsFactory.x
+ * @property {number} jsFactory.y
+ * 
+ */
 
 const parseRQAPContent = content => {
   const lines = content.split("\n");
@@ -101,43 +96,31 @@ const parseRQAPContent = content => {
 
 const calculateDistance = (a, b) => Math.round(Math.sqrt(Math.pow(b.x - a.x, 2) + Math.pow(b.y - a.y, 2)))
 const calculateDistanceMatrix = factories => Object.keys(factories).map(idA => Object.keys(factories).map(idB => calculateDistance(factories[idA], factories[idB])))
-export const enhanceWithDistanceMatrix = ({ factories, ...rest }) => ({ factories, distanceMatrix: calculateDistanceMatrix(factories), ...rest })
+const enhanceWithDistanceMatrix = ({ factories, ...rest }) => ({ factories, distanceMatrix: calculateDistanceMatrix(factories), ...rest })
 
-class RQAPParser {
+const createRQAPParser = (options = {}) => {
 
-  constructor(basePath = ".") {
-      this.basePath = basePath;
-  }
+  const parser = createParser({ fileExtension: "rqap", parseFn: parseRQAPContent, ...options })
 
-  parseFile = (options = {}) => {
-      const { path, name = "default" } = options;
-      const fullPath = path ? resolvePath(this.basePath, path) : resolvePath(this.basePath, "problems", `${name}.rqap`);
-      return new Promise((resolve, reject) => {
-          readFile(fullPath).then(content => {
-            try {
-              const result = parseRQAPContent(content);
-              resolve(result);
-            } catch (ex){
-              reject(ex);
-            }
-          }).catch(error => reject(error))
-      })
-  }
-}
+  const toInstance = enhanceWithDistanceMatrix;
 
-export const toNativeInstance = instance => {
-  const factories = objectValues(instance.factories).map(({ probability, capacity, x, y }) => new agentaddon.Factory(probability, capacity, x, y))
-  const machines = objectValues(instance.machines).map(({ size, redundancy }) => new agentaddon.Machine(size, redundancy));
-  const flowMatrix = new agentaddon.Matrix(instance.flowMatrix);
-  const changeOverMatrix = new agentaddon.Matrix(instance.changeOverMatrix);
-  const distanceMatrix = new agentaddon.Matrix(instance.distanceMatrix);
+  /**
+   *  1. Parse the instance into a js Object
+   *  2. Enhance the parsed instance with the distance matrix
+   *  3. Create native instances of the entities
+   */
+  const fileToNativeInstance = asyncCompose(
+    toNativeInstance, 
+    toInstance,
+    parser.parseFile
+  );
+
   return {
-    factories,
-    machines,
-    flowMatrix,
-    changeOverMatrix,
-    distanceMatrix
+    ...parser,
+    toNativeInstance,
+    toInstance,
+    fileToNativeInstance
   }
 }
 
-export default RQAPParser
+export default createRQAPParser

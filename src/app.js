@@ -2,33 +2,34 @@ import bindings from "bindings";
 import RQAPParser, { enhanceWithDistanceMatrix, toNativeInstance } from "./lib/rqapParser";
 import getParametersFromArgs from "./lib/parameterParser"
 import { getPerformaceTools, sleep, objectValues, compose } from "./helpers";
+import createRQAPParser from "./lib/rqapParser";
 
 const addon = bindings("nativeaddon");
 const agentaddon = bindings("agentaddon");
 const { performance } = getPerformaceTools()
 
-const parser = new RQAPParser();
+const parser = createRQAPParser()
 const parameters = getParametersFromArgs()
 console.log("Parameters", parameters)
 
 const main = async () => {
-  // Parse the instance into a js Object
-  const jsInstance = await parser.parseFile({ name: parameters.instanceName });
-  // Enhance the parsed instance with the distance matrix
-  // Create native instances of the entities
-  const instance = compose(
-    toNativeInstance,
-    enhanceWithDistanceMatrix
-  )(jsInstance);
-  let createdSolutions = 0;
-  const start = performance.now();
 
-  let current = 0;
-
-  const callback = (err, result) => {
-    console.log("err result", err, result, createdSolutions);
-    createdSolutions += 1;
-    current -= 1;
+  /**
+   * @typedef nativeInstance
+   * @property factories
+   * @property machines
+   * @property flowMatrix
+   * @property changeOverMatrix
+   * @propertydistanceMatrix
+   * 
+   * @type nativeInstance
+   */
+  let instance;
+  try {
+    instance = await parser.fileToNativeInstance({ name: parameters.instanceName })
+  } catch (error){
+    console.error("Could not create problem instance", error);
+    throw error;
   }
 
   const { factories, machines, flowMatrix, changeOverMatrix, distanceMatrix } = instance;
@@ -39,6 +40,17 @@ const main = async () => {
   const solution = agent.createSolution();
 
   console.log(solution);
+  
+  let createdSolutions = 0;
+  const start = performance.now();
+
+  let current = 0;
+
+  const callback = (err, result) => {
+    console.log("err result", err, result, createdSolutions);
+    createdSolutions += 1;
+    current -= 1;
+  }
 
   let i = 0;
   while (++i < 1000){
@@ -76,11 +88,16 @@ const main = async () => {
   const runlength = createdSolutions;
   const seed = null;
   const bestSol = 0;
+  console.log(`Human readable result \n`, { solved, runtime: `${runtime} ms`, runlength, bestSol })
   console.log(`Result for ParamILS: ${solved}, ${runtime}, ${runlength}, ${bestSol}, ${seed}`)
 
   //await sleep(100000)
 }
 
-main()
+try {
+  main()
+} catch (error){
+  console.error("Exception in main method", inspect(error));
+}
 
 //addon.test()
