@@ -1,6 +1,6 @@
 import compact from "lodash/compact";
 import { objectValues, asyncCompose } from "../helpers";
-import createParser from "./parser";
+import createParser, { toNativeInstance } from "./parser";
 
 const PARSE_MODE = {
   N: "n",
@@ -13,7 +13,7 @@ const modes = objectValues(PARSE_MODE);
 const parseQAPContent = content => {
   const lines = content.split("\n");
   let modeIndex = 0;
-  let n, flowMatrix, distanceMatrix;
+  let n, flowMatrix = [], distanceMatrix = [];
   let line = lines.shift();
   while (line || line === "") {
     if (line === "") {
@@ -21,9 +21,9 @@ const parseQAPContent = content => {
     } else if (modes[modeIndex] === PARSE_MODE.N) {
       n = parseInt(line);
     } else if (modes[modeIndex] === PARSE_MODE.A) {
-      flowMatrix.push(compact(line.split(" ")));
+      flowMatrix.push(compact(line.split(" ")).map(val => parseInt(val)));
     } else if (modes[modeIndex] === PARSE_MODE.B) {
-      distanceMatrix.push(compact(line.split(" ")));
+      distanceMatrix.push(compact(line.split(" ")).map(val => parseInt(val)));
     }
     line = lines.shift();
   }
@@ -34,12 +34,35 @@ const parseQAPContent = content => {
   };
 };
 
+const toObject = (arr, keyResolver = item => item.id) => {
+    const result = {}
+    arr.forEach(item => {
+        result[keyResolver(item)] = item
+    })
+    return result;
+}
+
 const transformQAPContent = ({ n, flowMatrix, distanceMatrix }) => {
+  const factories = toObject([...Array(n)].map((_, i) => ({
+      id: i,
+      probability: 0,
+      capacity: 1,
+      x: 0,
+      y: 0
+  })))
+  const machines = toObject([...Array(n)].map((_, i) => ({
+      id: i,
+      size: 1,
+      redundancy: 1
+  })))
+  const changeOverCost = 0;
+  const changeOverMatrix = [...Array(n)].map(_ => [...Array(n)].map(_ => changeOverCost))
   return {
-    factories: [],
-    machines: [],
-    flowMatrix: [],
-    changeOverMatrix: []
+    factories,
+    machines,
+    changeOverMatrix,
+    flowMatrix,
+    distanceMatrix
   };
 };
 

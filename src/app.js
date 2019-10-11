@@ -1,17 +1,15 @@
 import bindings from "bindings";
-import RQAPParser, {
-  enhanceWithDistanceMatrix,
-  toNativeInstance
-} from "./lib/rqapParser";
 import getParametersFromArgs from "./lib/parameterParser";
 import { getPerformaceTools, sleep, objectValues, compose } from "./helpers";
 import createRQAPParser from "./lib/rqapParser";
+import createQAPParser from "./lib/qapParser";
 
 const addon = bindings("nativeaddon");
 const agentaddon = bindings("agentaddon");
 const { performance } = getPerformaceTools();
 
-const parser = createRQAPParser();
+const qapParser = createQAPParser();
+const rqapParser = createQAPParser();
 const parameters = getParametersFromArgs();
 console.log("Parameters", parameters);
 
@@ -22,14 +20,14 @@ const main = async () => {
    * @property machines
    * @property flowMatrix
    * @property changeOverMatrix
-   * @propertydistanceMatrix
+   * @property distanceMatrix
    * 
    * @type nativeInstance
    */
   let instance;
   try {
-    instance = await parser.fileToNativeInstance({
-      name: parameters.instanceName
+    instance = await qapParser.fileToNativeInstance({
+      name: "bur26a" || parameters.instanceName
     });
   } catch (error) {
     console.error("Could not create problem instance", error);
@@ -43,9 +41,6 @@ const main = async () => {
     changeOverMatrix,
     distanceMatrix
   } = instance;
-  console.log(instance);
-  console.log("\n\n");
-
   const agent = new agentaddon.Agent(
     factories,
     machines,
@@ -54,25 +49,21 @@ const main = async () => {
     distanceMatrix
   );
   const solution = agent.createSolution();
-
   console.log(solution);
 
   let createdSolutions = 0;
   const start = performance.now();
 
-  let current = 0;
-
-  const callback = (err, result) => {
-    console.log("err result", err, result, createdSolutions);
-    createdSolutions += 1;
-    current -= 1;
-  };
-
   let i = 0;
+  let best = null;
   while (++i < 1000) {
     const solution = agent.createSolution();
-    //console.log(solution);
+    if (!best || best.quality > solution.quality){
+      best = solution
+      console.log({ quality: best.quality, i })
+    }
   }
+  createdSolutions = i;
 
   /*l
 
@@ -87,6 +78,16 @@ const main = async () => {
   /*
   
   /*
+
+
+  let current = 0;
+
+  const callback = (err, result) => {
+    console.log("err result", err, result, createdSolutions);
+    createdSolutions += 1;
+    current -= 1;
+  };
+
   while (createdSolutions < parameters.maxSolutions){
     if (current < parameters.agents){
       current += 1;

@@ -70,6 +70,7 @@ const parseRQAPContent = content => {
       if (match) {
         const id = match[1];
         machines[id] = {
+          id: parseInt(id),
           size: parseInt(match[2]), //Größe
           redundancy: parseInt(match[3]) || 1 //Redundancy
         };
