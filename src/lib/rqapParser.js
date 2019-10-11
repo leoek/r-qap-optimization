@@ -19,8 +19,21 @@ const modes = objectValues(PARSE_MODE);
  * @property {number} jsFactory.capacity
  * @property {number} jsFactory.x
  * @property {number} jsFactory.y
- * 
  */
+
+/**
+ * @typedef {object} qapContent
+ * @property {object} factories object containing jsFactories
+ * @property {object} machines object containing jsMachines
+ * @property {array} flowMatrix 2-dimensional matrix array
+ * @property {array} changeOverMatrix 2-dimensional matrix array
+ */
+
+ /**
+  * 
+  * @param {string} content File content
+  * @returns {qapContent}
+  */
 
 const parseRQAPContent = content => {
   const lines = content.split("\n");
