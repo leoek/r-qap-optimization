@@ -1,12 +1,12 @@
-import compact from "lodash/compact"
+import compact from "lodash/compact";
 import { objectValues, asyncCompose } from "../helpers";
-import createParser from "./parser"
+import createParser from "./parser";
 
 const PARSE_MODE = {
   N: "n",
   A: "A", // Flow Matrix
-  B: "B", // Distance Matrix
-}
+  B: "B" // Distance Matrix
+};
 
 const modes = objectValues(PARSE_MODE);
 
@@ -14,38 +14,41 @@ const parseQAPContent = content => {
   const lines = content.split("\n");
   let modeIndex = 0;
   let n, flowMatrix, distanceMatrix;
-  let line = lines.shift()
+  let line = lines.shift();
   while (line || line === "") {
-      if (line === ""){
-        modeIndex += 1;
-      } else if (modes[modeIndex] === PARSE_MODE.N){
-        n = parseInt(line);
-      } else if (modes[modeIndex] === PARSE_MODE.A){
-        flowMatrix.push(compact(line.split(" ")));
-      } else if (modes[modeIndex] === PARSE_MODE.B){
-        distanceMatrix.push(compact(line.split(" ")))
-      }
-      line = lines.shift()
+    if (line === "") {
+      modeIndex += 1;
+    } else if (modes[modeIndex] === PARSE_MODE.N) {
+      n = parseInt(line);
+    } else if (modes[modeIndex] === PARSE_MODE.A) {
+      flowMatrix.push(compact(line.split(" ")));
+    } else if (modes[modeIndex] === PARSE_MODE.B) {
+      distanceMatrix.push(compact(line.split(" ")));
+    }
+    line = lines.shift();
   }
   return {
     n,
     flowMatrix,
     distanceMatrix
-  }
-}
+  };
+};
 
 const transformQAPContent = ({ n, flowMatrix, distanceMatrix }) => {
-    return {
-        factories: [],
-        machines: [],
-        flowMatrix: [],
-        changeOverMatrix: []
-    }
-}
+  return {
+    factories: [],
+    machines: [],
+    flowMatrix: [],
+    changeOverMatrix: []
+  };
+};
 
 const createQAPParser = (options = {}) => {
-
-  const parser = createParser({ fileExtension: "dat", parseFn: parseQAPContent, ...options })
+  const parser = createParser({
+    fileExtension: "dat",
+    parseFn: parseQAPContent,
+    ...options
+  });
   const toInstance = transformQAPContent;
 
   /**
@@ -54,7 +57,7 @@ const createQAPParser = (options = {}) => {
    *  3. Create native instances of the entities
    */
   const fileToNativeInstance = asyncCompose(
-    toNativeInstance, 
+    toNativeInstance,
     toInstance,
     parser.parseFile
   );
@@ -64,7 +67,7 @@ const createQAPParser = (options = {}) => {
     toNativeInstance,
     toInstance,
     fileToNativeInstance
-  }
-}
+  };
+};
 
-export default createQAPParser
+export default createQAPParser;

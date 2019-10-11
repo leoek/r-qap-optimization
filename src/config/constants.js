@@ -1,3 +1,3 @@
 export const ERROR = {
   INVALID_INPUT_SYNTAX: "INVALID_INPUT_SYNTAX"
-}
+};
