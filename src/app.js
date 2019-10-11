@@ -1,4 +1,5 @@
 import bindings from "bindings";
+import cluster from "cluster";
 import getParametersFromArgs from "./lib/parameterParser";
 import { getPerformaceTools, sleep, objectValues, compose } from "./helpers";
 import createRQAPParser from "./lib/rqapParser";
@@ -27,7 +28,7 @@ const main = async () => {
   let instance;
   try {
     instance = await qapParser.fileToNativeInstance({
-      name: "bur26a" || parameters.instanceName
+      name: "nug12" || parameters.instanceName
     });
   } catch (error) {
     console.error("Could not create problem instance", error);
@@ -49,23 +50,75 @@ const main = async () => {
     distanceMatrix
   );
   const solution = agent.createSolution();
-  console.log(solution);
+  //console.log(solution);
 
   let createdSolutions = 0;
+  const workerCount = 4;
   const start = performance.now();
 
-  let i = 0;
   let best = null;
-  while (++i < 1000) {
-    const solution = agent.createSolution();
-    if (!best || best.quality > solution.quality){
-      best = solution
-      console.log({ quality: best.quality, i })
-    }
-  }
-  createdSolutions = i;
 
-  /*l
+  let executionDoneCallback = () => undefined;
+  const executionDonePromise = new Promise(resolve => {
+    executionDoneCallback = resolve;
+  })
+
+  if (cluster.isMaster){
+
+    console.log(`Master ${process.pid} is running`);
+    const createdWorkerSolutions = Array(workerCount).fill(0);
+
+    for (let i=0; i < workerCount; i++){
+      cluster.fork();
+    }
+
+    cluster.on('exit', (worker, code, signal) => {
+      console.log("MASTER",`worker ${worker.process.pid} died`);
+      console.log("MASTER:", { createdSolutions, quality: best.quality, workersLeft: objectValues(cluster.workers).length });
+      if (objectValues(cluster.workers).length === 0){
+        executionDoneCallback()
+      }
+    });
+
+    // Receive Solutions from Workers
+    const messageHandler = (msg) => {
+      if (msg.cmd && msg.cmd.createdSolutions){
+        createdWorkerSolutions[msg.cmd.workerId] = msg.cmd.createdSolutions
+        createdSolutions = createdWorkerSolutions.reduce((sum, val) => sum += val, 0);
+      }
+      if (msg.cmd && msg.cmd.solution) {
+        if (!best || best.quality > msg.cmd.solution.quality){
+          best = msg.cmd.solution
+        }
+      }
+      console.log("MASTER", { quality: best.quality, createdSolutions })
+    }
+
+    for (const id in cluster.workers) {
+      cluster.workers[id].on('message', messageHandler);
+    }
+  } else {
+    console.log(`Worker ${process.pid} started`);
+
+    let i = 0;
+    while (++i < 1000) {
+      const solution = agent.createSolution();
+      if (!best || best.quality > solution.quality){
+        best = solution
+        //console.log("WORKER", { cmd: { quality: solution.quality, workerId: cluster.worker.id, i } })
+        process.send({ cmd: { solution, workerId: cluster.worker.id, createdSolutions: i } });
+      }
+    }
+    createdSolutions = i;
+    process.send({ cmd: { solution: best, workerId: cluster.worker.id, createdSolutions } });
+    executionDoneCallback();
+    process.exit(0)
+  }
+
+  console.log("MASTER", "waiting for execution promise to resolve")
+  await executionDonePromise;
+  console.log("MASTER", "execution promise resolved")
+  /*
 
   const sol = new agentaddon.Solution([1,2,3,4,5], 9.78);
   sol.add(4);

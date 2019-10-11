@@ -222,7 +222,17 @@ void Agent::ResetCurrentFactories(){
 }
 
 int Agent::RateSolution(Solution &sol){
-  
+  // Rate the generated solution
+  // #TODO rate all criteria (currently only flow*distance)
+  int flowDistanceSum = 0;
+  for (unsigned int m_i = 0; m_i < machines.size(); m_i++){
+    for (unsigned int m_k = 0; m_k < machines.size(); m_k++){
+      int flow = flowMatrix->GetValue(m_i, m_k);
+      int distance = distanceMatrix->GetValue(sol.permutation[m_i], sol.permutation[m_k]);
+      flowDistanceSum += flow * distance;
+    }
+  }
+  sol.quality = flowDistanceSum;
 }
 
 void Agent::Solve(Solution &sol){
@@ -232,17 +242,6 @@ void Agent::Solve(Solution &sol){
     sol.Add(GetNextValue());
     currentMachineIndex++;
   }
-  // Rate the generated solution
-  // #TODO rate all criteria (currently only flow*distance)
-  int sum = 0;
-  for (unsigned int m_i = 0; m_i < machines.size(); m_i++){
-    for (unsigned int m_k = 0; m_k < machines.size(); m_k++){
-      int flow = flowMatrix->GetValue(m_i, m_k);
-      int distance = distanceMatrix->GetValue(sol.permutation[m_i], sol.permutation[m_k]);
-      sum += flow * distance;
-    }
-  }
-  sol.quality = sum;
 }
 
 NAN_METHOD(Agent::CreateSolution) {
@@ -257,5 +256,6 @@ NAN_METHOD(Agent::CreateSolution) {
   Local<Object> _sol = Nan::NewInstance(constructorFunc, argc, argv).ToLocalChecked();
   Solution * sol = Nan::ObjectWrap::Unwrap<Solution>(_sol);
   self->Solve(*sol);
+  self->RateSolution(*sol);
   info.GetReturnValue().Set(_sol);
 }
