@@ -233,6 +233,7 @@ int Agent::RateSolution(Solution &sol){
     }
   }
   sol.quality = flowDistanceSum;
+  return flowDistanceSum;
 }
 
 void Agent::Solve(Solution &sol){
@@ -257,5 +258,6 @@ NAN_METHOD(Agent::CreateSolution) {
   Solution * sol = Nan::ObjectWrap::Unwrap<Solution>(_sol);
   self->Solve(*sol);
   self->RateSolution(*sol);
+
   info.GetReturnValue().Set(_sol);
 }
