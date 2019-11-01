@@ -36,11 +36,13 @@ public:
   void ResetFactories();
   void Solve(Solution&);
   int RateSolution(Solution&);
+  bool UpdatePersonalPopulation(Solution&);
 
   static NAN_MODULE_INIT(Init);
   static NAN_METHOD(New);
   static NAN_METHOD(Add);
-  static NAN_METHOD(CreateSolution);
+  bool CreateSolution();
+  static NAN_METHOD(_CreateSolution);
 
   static NAN_GETTER(HandleGetters);
   static NAN_SETTER(HandleSetters);

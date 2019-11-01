@@ -53,7 +53,7 @@ const main = async () => {
   //console.log(solution);
 
   let createdSolutions = 0;
-  const workerCount = 4;
+  const workerCount = 20;
   const start = performance.now();
 
   let best = null;
@@ -91,7 +91,7 @@ const main = async () => {
           best = msg.cmd.solution
         }
       }
-      console.log("MASTER", { quality: best.quality, createdSolutions, permutation: best.permutation })
+      //console.log("MASTER", { quality: best.quality, createdSolutions, permutation: best.permutation })
     }
 
     for (const id in cluster.workers) {
@@ -102,7 +102,8 @@ const main = async () => {
 
     let i = 0;
     while (++i < 1000000000) {
-      const solution = agent.createSolution();
+      const solution = { quality: 1, permutation: []}
+      agent.createSolution();
       if (!best || best.quality > solution.quality){
         best = solution
         //console.log("WORKER", { cmd: { quality: solution.quality, workerId: cluster.worker.id, i } })

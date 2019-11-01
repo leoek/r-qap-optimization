@@ -18,7 +18,7 @@ NAN_MODULE_INIT(Agent::Init) {
   Nan::SetAccessor(ctor->InstanceTemplate(), Nan::New("intarray").ToLocalChecked(), Agent::HandleGetters, Agent::HandleSetters);
 
   Nan::SetPrototypeMethod(ctor, "add", Add);
-  Nan::SetPrototypeMethod(ctor, "createSolution", CreateSolution);
+  Nan::SetPrototypeMethod(ctor, "createSolution", _CreateSolution);
 
   target->Set(Nan::New("Agent").ToLocalChecked(), ctor->GetFunction());
 }
@@ -163,7 +163,10 @@ NAN_SETTER(Agent::HandleSetters) {
 }
 
 int Agent::GetNextValue(){
-
+  //printf("\ncurrentMachine %i / %i", currentMachineIndex, machines.size());
+  if (currentMachineIndex < 0 || currentMachineIndex >= machines.size()){
+      printf("fail currentMachineIndex %i", currentMachineIndex);
+    }
   Machine * currentMachine = machines.at(currentMachineIndex);
   // #PERFORMANCE
   // check the capacity requirement after selecting randomly
@@ -176,7 +179,6 @@ int Agent::GetNextValue(){
     }
   }
 
-  vector<Solution*> chosenPopulation;
   int selected = -1;
   random_selector<> selector{};
   // try until a new index is selected
@@ -195,10 +197,23 @@ int Agent::GetNextValue(){
 
       } else if (populationSelector < rndWeight + gBestPopulationWeight + pBestPopulationWeight && personalBestSolutions.size() >= 1){
         Solution * srcSol = selector(personalBestSolutions);
-        possibleIndex = srcSol->permutation.at(currentMachineIndex);
+        // TODO
+        // Not sure how this can happen yet
+        // This seems to be a node related issue... it does not happen if the solution
+        // is not created as a js instance
+        if (currentMachineIndex >= srcSol->permutation.size()){
+          printf("\nselected invalid srcSol from personal best %i / %i", currentMachineIndex, srcSol->permutation.size());
+          printf("\nquality: %i, sol: ", srcSol->quality);
+          for (unsigned int k = 0; k < srcSol->permutation.size(); k++){
+            printf(" %i ", srcSol->permutation.at(k));
+          }
+          printf("\n");
+        } else {
+          possibleIndex = srcSol->permutation.at(currentMachineIndex);
+        }
       }
       // Check whether there is a possible index which was copied from a previous Solution
-      if (possibleIndex >= 0){
+      if (possibleIndex >= 0 && possibleIndex < factories.size()){
         // Check whether the machine fits into that factory (get the factory at that index)
         // select that index if it is feasible
         if (possibleIndex >= 0 && factories.at(possibleIndex)->GetUnusedCapacity() >= machines.at(currentMachineIndex)->size){
@@ -243,7 +258,44 @@ void Agent::Solve(Solution &sol){
   }
 }
 
-NAN_METHOD(Agent::CreateSolution) {
+/**
+ * Could bey useful to sort them
+ * not sure yet
+ */
+bool Agent::UpdatePersonalPopulation(Solution &sol){
+  if (personalBestSolutions.size() < maxPersonalBest){
+    personalBestSolutions.push_back(&sol);
+    return true;
+  }
+  unsigned int i = 0;
+  while (i < personalBestSolutions.size()){
+    if (personalBestSolutions.at(i)->quality < sol.quality){
+      break;
+    }
+    i++;
+  }
+  if (i < personalBestSolutions.size()){
+    /**
+     * TODO UNSAFE
+     * not sure yet whether it is safe to delete that solution,
+     * as it may be used in the node thread.
+     */
+    //delete personalBestSolutions[i];
+    personalBestSolutions[i] = &sol;
+    return true;
+  }
+  return false;
+}
+
+bool Agent::CreateSolution(){
+  Solution * sol = new Solution();
+  Solve(*sol);
+  RateSolution(*sol);
+  return UpdatePersonalPopulation(*sol);
+}
+
+//TODO use CreateSolution function here once Getters for the created Solutions are ready
+NAN_METHOD(Agent::_CreateSolution) {
   // unwrap this Agent
   Agent * self = Nan::ObjectWrap::Unwrap<Agent>(info.This());
 
@@ -256,6 +308,6 @@ NAN_METHOD(Agent::CreateSolution) {
   Solution * sol = Nan::ObjectWrap::Unwrap<Solution>(_sol);
   self->Solve(*sol);
   self->RateSolution(*sol);
-
+  self->UpdatePersonalPopulation(*sol);
   info.GetReturnValue().Set(_sol);
 }
