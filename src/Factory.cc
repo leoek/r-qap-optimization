@@ -32,7 +32,7 @@ NAN_MODULE_INIT(Factory::Init) {
   Nan::SetAccessor(ctor->InstanceTemplate(), Nan::New("usedCapacity").ToLocalChecked(), Factory::HandleGetters);
 
   Nan::SetPrototypeMethod(ctor, "useCapacity", _UseCapacity);
-  Nan::SetPrototypeMethod(ctor, "resetUsedCapacity", ResetUsedCapacity);
+  Nan::SetPrototypeMethod(ctor, "resetUsedCapacity", _ResetUsedCapacity);
   Nan::SetPrototypeMethod(ctor, "getUnusedCapacity", _GetUnusedCapacity);
   
   target->Set(Nan::New("Factory").ToLocalChecked(), ctor->GetFunction());
@@ -104,9 +104,14 @@ NAN_SETTER(Factory::HandleSetters) {
   }
 }
 
-NAN_METHOD(Factory::ResetUsedCapacity){
+int Factory::ResetUsedCapacity(){
+  usedCapacity = 0;
+  return GetUnusedCapacity();
+}
+
+NAN_METHOD(Factory::_ResetUsedCapacity){
   Factory * self = Nan::ObjectWrap::Unwrap<Factory>(info.This());
-  self->usedCapacity = 0;
+  self->ResetUsedCapacity();
 }
 
 bool Factory::UseCapacity(int use){

@@ -18,7 +18,8 @@ public:
   static NAN_METHOD(_UseCapacity);
   int GetUnusedCapacity();
   static NAN_METHOD(_GetUnusedCapacity);
-  static NAN_METHOD(ResetUsedCapacity);
+  int ResetUsedCapacity();
+  static NAN_METHOD(_ResetUsedCapacity);
 
   Factory();
   Factory(Factory&);

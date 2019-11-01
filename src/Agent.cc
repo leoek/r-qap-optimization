@@ -170,8 +170,8 @@ int Agent::GetNextValue(){
   // remove from availableFactories if not enough space
   // and select randomly again
   vector<int> availableFactories;
-  for (unsigned int i = 0; i < currentFactories.size(); i++){
-    if (currentFactories.at(i)->GetUnusedCapacity() >= currentMachine->size){
+  for (unsigned int i = 0; i < factories.size(); i++){
+    if (factories.at(i)->GetUnusedCapacity() >= currentMachine->size){
       availableFactories.push_back(i);
     }
   }
@@ -201,24 +201,22 @@ int Agent::GetNextValue(){
       if (possibleIndex >= 0){
         // Check whether the machine fits into that factory (get the factory at that index)
         // select that index if it is feasible
-        if (possibleIndex >= 0 && currentFactories.at(possibleIndex)->GetUnusedCapacity() >= machines.at(currentMachineIndex)->size){
+        if (possibleIndex >= 0 && factories.at(possibleIndex)->GetUnusedCapacity() >= machines.at(currentMachineIndex)->size){
           selected = possibleIndex;
         }
       }
     }
   }
   // Use the size of currenMachine inthe chosen factory
-  currentFactories.at(selected)->UseCapacity(currentMachine->size);
+  factories.at(selected)->UseCapacity(currentMachine->size);
   return selected;
 }
 
-void Agent::ResetCurrentFactories(){
+void Agent::ResetFactories(){
   vector<Factory*> newFactories;
   for (unsigned int i = 0; i < factories.size(); i++){
-    Factory * copy = new Factory(* factories.at(i));
-    newFactories.push_back(copy);
+    factories.at(i)->ResetUsedCapacity();
   }
-  currentFactories = newFactories;
 }
 
 int Agent::RateSolution(Solution &sol){
@@ -237,7 +235,7 @@ int Agent::RateSolution(Solution &sol){
 }
 
 void Agent::Solve(Solution &sol){
-  ResetCurrentFactories();
+  ResetFactories();
   currentMachineIndex = 0;
   while(currentMachineIndex < machines.size()){
     sol.Add(GetNextValue());

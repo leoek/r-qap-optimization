@@ -91,7 +91,7 @@ const main = async () => {
           best = msg.cmd.solution
         }
       }
-      console.log("MASTER", { quality: best.quality, createdSolutions })
+      console.log("MASTER", { quality: best.quality, createdSolutions, permutation: best.permutation })
     }
 
     for (const id in cluster.workers) {
@@ -101,7 +101,7 @@ const main = async () => {
     console.log(`Worker ${process.pid} started`);
 
     let i = 0;
-    while (++i < 1000) {
+    while (++i < 1000000000) {
       const solution = agent.createSolution();
       if (!best || best.quality > solution.quality){
         best = solution

@@ -27,14 +27,13 @@ public:
   int maxPersonalBest = 3;
   std::vector<Solution*> personalBestSolutions;
   int currentMachineIndex = 0;
-  std::vector<Factory*> currentFactories;
 
   int pBestPopulationWeight = 1;
   int gBestPopulationWeight = 1;
   int rndWeight = 1;
 
   int GetNextValue();
-  void ResetCurrentFactories();
+  void ResetFactories();
   void Solve(Solution&);
   int RateSolution(Solution&);
 
