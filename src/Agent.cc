@@ -29,7 +29,7 @@ NAN_METHOD(Agent::New) {
     return Nan::ThrowError(Nan::New("Agent::New - called without new keyword").ToLocalChecked());
   }
 
-  if(info.Length() != 5) {
+  if(info.Length() != 6) {
     return Nan::ThrowError(Nan::New("Agent::New - unexpected number of arguments").ToLocalChecked());
   }
   // #NIT Arrays currently have no explicit type check
@@ -43,9 +43,13 @@ NAN_METHOD(Agent::New) {
     return Nan::ThrowError(Nan::New("Agent::New - expected argument 5 to be instance of Matrix").ToLocalChecked());
   }
 
+  Nan::Callback *callback = new Nan::Callback(Nan::To<Function>(info[5]).ToLocalChecked());
+
   // create a new instance and wrap our javascript instance
   Agent* self = new Agent();
   self->Wrap(info.Holder());
+
+  self->newPersonalBestSolution = callback;
 
   // initialize it's values
   Local<Array> factoryJsArray = Local<Array>::Cast(info[0]);
@@ -291,6 +295,7 @@ bool Agent::CreateSolution(){
   Solution * sol = new Solution();
   Solve(*sol);
   RateSolution(*sol);
+  newPersonalBestSolution->Call(0,0);
   return UpdatePersonalPopulation(*sol);
 }
 
@@ -309,5 +314,12 @@ NAN_METHOD(Agent::_CreateSolution) {
   self->Solve(*sol);
   self->RateSolution(*sol);
   self->UpdatePersonalPopulation(*sol);
+
+  Local<Value> argvv[] = {
+        Nan::Null()
+      , _sol
+    };
+
+  (self->newPersonalBestSolution)->Call(2, argvv);
   info.GetReturnValue().Set(_sol);
 }
