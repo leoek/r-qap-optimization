@@ -22,7 +22,7 @@ const main = async () => {
    * @property flowMatrix
    * @property changeOverMatrix
    * @property distanceMatrix
-   * 
+   *
    * @type nativeInstance
    */
   let instance;
@@ -42,83 +42,108 @@ const main = async () => {
     changeOverMatrix,
     distanceMatrix
   } = instance;
-  const agent = new agentaddon.Agent(
-    factories,
-    machines,
-    flowMatrix,
-    changeOverMatrix,
-    distanceMatrix
-  );
-  const solution = agent.createSolution();
-  //console.log(solution);
 
+  // This will contain the best solution (this is a native instance)
+  let best = null;
   let createdSolutions = 0;
-  const workerCount = 20;
+  const workerCount = 4;
   const start = performance.now();
 
-  let best = null;
+  if (!cluster.isMaster) {
+    console.log(`Worker ${process.pid} started`);
+    const agent = new agentaddon.Agent(
+      factories,
+      machines,
+      flowMatrix,
+      changeOverMatrix,
+      distanceMatrix
+    );
+    const reportSolutionToMaster = (solution, createdCount) => {
+      console.log("WORKER", {
+        cmd: {
+          quality: solution.quality,
+          workerId: cluster.worker.id,
+          createdCount
+        }
+      });
+      process.send({
+        cmd: {
+          solution,
+          workerId: cluster.worker.id,
+          createdSolutions: createdCount
+        }
+      });
+    };
+    let i = 0;
+    while (++i < 100) {
+      const solution = agent.createSolution();
+      //Check whether the new solution is better than the workers current best
+      if (!best || best.quality > solution.quality) {
+        best = solution;
+        reportSolutionToMaster(best, i);
+      }
+    }
+    reportSolutionToMaster(best, i);
+    process.exit(0);
+  }
+  // Everything below here will only run for the master node.
 
+  // Will be called if all workers exited.
   let executionDoneCallback = () => undefined;
   const executionDonePromise = new Promise(resolve => {
     executionDoneCallback = resolve;
-  })
+  });
 
-  if (cluster.isMaster){
+  console.log(
+    `\nMaster ${process.pid} is running and about to start Workers.\n`
+  );
+  const createdWorkerSolutions = Array(workerCount).fill(0);
 
-    console.log(`Master ${process.pid} is running`);
-    const createdWorkerSolutions = Array(workerCount).fill(0);
-
-    for (let i=0; i < workerCount; i++){
-      cluster.fork();
-    }
-
-    cluster.on('exit', (worker, code, signal) => {
-      console.log("MASTER",`worker ${worker.process.pid} died`);
-      console.log("MASTER:", { createdSolutions, quality: best.quality, workersLeft: objectValues(cluster.workers).length });
-      if (objectValues(cluster.workers).length === 0){
-        executionDoneCallback()
-      }
-    });
-
-    // Receive Solutions from Workers
-    const messageHandler = (msg) => {
-      if (msg.cmd && msg.cmd.createdSolutions){
-        createdWorkerSolutions[msg.cmd.workerId] = msg.cmd.createdSolutions
-        createdSolutions = createdWorkerSolutions.reduce((sum, val) => sum += val, 0);
-      }
-      if (msg.cmd && msg.cmd.solution) {
-        if (!best || best.quality > msg.cmd.solution.quality){
-          best = msg.cmd.solution
-        }
-      }
-      //console.log("MASTER", { quality: best.quality, createdSolutions, permutation: best.permutation })
-    }
-
-    for (const id in cluster.workers) {
-      cluster.workers[id].on('message', messageHandler);
-    }
-  } else {
-    console.log(`Worker ${process.pid} started`);
-
-    let i = 0;
-    while (++i < 1000000000) {
-      const solution = { quality: 1, permutation: []}
-      agent.createSolution();
-      if (!best || best.quality > solution.quality){
-        best = solution
-        //console.log("WORKER", { cmd: { quality: solution.quality, workerId: cluster.worker.id, i } })
-        process.send({ cmd: { solution, workerId: cluster.worker.id, createdSolutions: i } });
-      }
-    }
-    createdSolutions = i;
-    process.send({ cmd: { solution: best, workerId: cluster.worker.id, createdSolutions } });
-    executionDoneCallback();
-    process.exit(0)
+  for (let i = 0; i < workerCount; i++) {
+    cluster.fork();
   }
 
-  console.log("MASTER", "waiting for execution promise to resolve")
+  // Handle Worker Exit
+  cluster.on("exit", (worker, code, signal) => {
+    console.log("MASTER", `worker ${worker.process.pid} died`);
+    console.log("MASTER:", {
+      createdSolutions,
+      quality: best.quality,
+      workersLeft: objectValues(cluster.workers).length
+    });
+    if (objectValues(cluster.workers).length === 0) {
+      executionDoneCallback();
+    }
+  });
+
+  // Receive Solutions from Workers
+  const messageHandler = msg => {
+    if (msg.cmd && msg.cmd.createdSolutions) {
+      createdWorkerSolutions[msg.cmd.workerId] = msg.cmd.createdSolutions;
+      createdSolutions = createdWorkerSolutions.reduce(
+        (sum, val) => (sum += val),
+        0
+      );
+    }
+    if (msg.cmd && msg.cmd.solution) {
+      if (!best || best.quality > msg.cmd.solution.quality) {
+        best = msg.cmd.solution;
+      }
+    }
+    console.log("MASTER", {
+      quality: best.quality,
+      createdSolutions,
+      permutation: best.permutation
+    });
+  };
+
+  for (const id in cluster.workers) {
+    cluster.workers[id].on("message", messageHandler);
+  }
+
+  console.log("MASTER", "waiting for execution promise to resolve");
   await executionDonePromise;
-  console.log("MASTER", "execution promise resolved")
+  console.log("MASTER", "execution promise resolved");
   /*
 
   const sol = new agentaddon.Solution([1,2,3,4,5], 9.78);
@@ -158,15 +183,15 @@ const main = async () => {
   const runtime = end - start;
   const runlength = createdSolutions;
   const seed = null;
-  const bestSol = 0;
-  console.log(`Human readable result \n`, {
+  const bestSol = best.quality;
+  console.log(`\nHuman readable result \n`, {
     solved,
     runtime: `${runtime} ms`,
     runlength,
     bestSol
   });
   console.log(
-    `Result for ParamILS: ${solved}, ${runtime}, ${runlength}, ${bestSol}, ${seed}`
+    `\nResult for ParamILS: ${solved}, ${runtime}, ${runlength}, ${bestSol}, ${seed}`
   );
 
   //await sleep(100000)
