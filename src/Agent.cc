@@ -49,7 +49,7 @@ NAN_METHOD(Agent::New) {
   Agent* self = new Agent();
   self->Wrap(info.Holder());
 
-  self->newPersonalBestSolution = callback;
+  self->newPersonalBestSolutionCallback = callback;
 
   // initialize it's values
   Local<Array> factoryJsArray = Local<Array>::Cast(info[0]);
@@ -291,12 +291,42 @@ bool Agent::UpdatePersonalPopulation(Solution &sol){
   return false;
 }
 
+void Agent::HandleNewPersonalBestSolution(Solution &sol){
+  // Create new wrapped solution instance _sol
+  v8::Local<v8::Array> jsArray = Nan::New<v8::Array>(sol.permutation.size());
+  for (size_t i = 0; i < sol.permutation.size(); i++)
+  {
+      Nan::Set(jsArray, i, Nan::New<Number>(sol.permutation[i]));
+  }
+
+  const int argc = 2;
+  v8::Local<v8::Value> argv[argc] = {
+    jsArray,
+    Nan::New(sol.quality)
+  };
+
+  Local<Function> constructorFunc = Nan::New(Solution::constructor)->GetFunction();
+  Local<Object> _sol = Nan::NewInstance(constructorFunc, argc, argv).ToLocalChecked();
+
+  // Call Callback with that wrapped instance
+  const int callback_argc = 2;
+  Local<Value> callback_argv[] = {
+        Nan::Null()
+      , _sol
+    };
+
+  newPersonalBestSolutionCallback->Call(argc, callback_argv);
+}
+
 bool Agent::CreateSolution(){
   Solution * sol = new Solution();
   Solve(*sol);
   RateSolution(*sol);
-  newPersonalBestSolution->Call(0,0);
-  return UpdatePersonalPopulation(*sol);
+  const bool isInPersonalBest = UpdatePersonalPopulation(*sol);
+  if (isInPersonalBest){
+      HandleNewPersonalBestSolution(*sol);
+  }
+  return isInPersonalBest;
 }
 
 //TODO use CreateSolution function here once Getters for the created Solutions are ready
@@ -315,11 +345,11 @@ NAN_METHOD(Agent::_CreateSolution) {
   self->RateSolution(*sol);
   self->UpdatePersonalPopulation(*sol);
 
-  Local<Value> argvv[] = {
+  Local<Value> callback_argv[] = {
         Nan::Null()
       , _sol
     };
+  (self->newPersonalBestSolutionCallback)->Call(2, callback_argv);
 
-  (self->newPersonalBestSolution)->Call(2, argvv);
   info.GetReturnValue().Set(_sol);
 }

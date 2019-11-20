@@ -32,7 +32,8 @@ public:
   int gBestPopulationWeight = 1;
   int rndWeight = 1;
 
-  Nan::Callback* newPersonalBestSolution;
+  Nan::Callback* newPersonalBestSolutionCallback;
+  void HandleNewPersonalBestSolution(Solution&);
 
   int GetNextValue();
   void ResetFactories();

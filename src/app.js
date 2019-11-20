@@ -57,7 +57,7 @@ const main = async () => {
       flowMatrix,
       changeOverMatrix,
       distanceMatrix,
-      (a, b) => console.log("called back", { a, b })
+      (err, solution) => console.log("called back", { err, solution })
     );
     const reportSolutionToMaster = (solution, createdCount) => {
       console.log("WORKER", {
