@@ -40,6 +40,7 @@ public:
   void Solve(Solution&);
   int RateSolution(Solution&);
   bool UpdatePersonalPopulation(Solution&);
+  bool UpdateGlobalPopulation(Solution&);
 
   static NAN_MODULE_INIT(Init);
   static NAN_METHOD(New);

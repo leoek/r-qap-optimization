@@ -291,6 +291,11 @@ bool Agent::UpdatePersonalPopulation(Solution &sol){
   return false;
 }
 
+//TODO
+bool Agent::UpdateGlobalPopulation(Solution &sol){
+  return true;
+}
+
 void Agent::HandleNewPersonalBestSolution(Solution &sol){
   // Create new wrapped solution instance _sol
   v8::Local<v8::Array> jsArray = Nan::New<v8::Array>(sol.permutation.size());
@@ -324,7 +329,10 @@ bool Agent::CreateSolution(){
   RateSolution(*sol);
   const bool isInPersonalBest = UpdatePersonalPopulation(*sol);
   if (isInPersonalBest){
-      HandleNewPersonalBestSolution(*sol);
+      const bool isInLocalGlobalBest = UpdateGlobalPopulation(*sol);
+      if (isInLocalGlobalBest){
+        HandleNewPersonalBestSolution(*sol);
+      }
   }
   return isInPersonalBest;
 }
@@ -343,13 +351,19 @@ NAN_METHOD(Agent::_CreateSolution) {
   Solution * sol = Nan::ObjectWrap::Unwrap<Solution>(_sol);
   self->Solve(*sol);
   self->RateSolution(*sol);
-  self->UpdatePersonalPopulation(*sol);
-
-  Local<Value> callback_argv[] = {
-        Nan::Null()
-      , _sol
-    };
-  (self->newPersonalBestSolutionCallback)->Call(2, callback_argv);
+  
+  const bool isInPersonalBest = self->UpdatePersonalPopulation(*sol);
+  if (isInPersonalBest){
+    const bool isInLocalGlobalBest = self->UpdateGlobalPopulation(*sol);
+    if (isInLocalGlobalBest){
+      // invoke callback with new solution
+      Local<Value> callback_argv[] = {
+          Nan::Null()
+        , _sol
+      };
+      (self->newPersonalBestSolutionCallback)->Call(2, callback_argv);
+    }
+  }
 
   info.GetReturnValue().Set(_sol);
 }
