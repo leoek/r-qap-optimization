@@ -14,6 +14,11 @@ const rqapParser = createQAPParser();
 const parameters = getParametersFromArgs();
 console.log("Parameters", parameters);
 
+// Receive messages from the master process.
+process.on("message", msg => {
+  console.log("Worker " + process.pid + " received message from master.", msg);
+});
+
 const main = async () => {
   /**
    * @typedef nativeInstance
@@ -154,6 +159,14 @@ const main = async () => {
       executionDoneCallback();
     }
   });
+
+  // Send message to the workers
+  objectValues(cluster.workers).forEach(function(worker) {
+    console.log(
+      `Master ${process.pid} sends message to worker ${worker.process.pid}...`
+    );
+    worker.send({ msg: `Message from master ${process.pid}` });
+  }, this);
 
   console.log("MASTER", "waiting for execution promise to resolve");
   await executionDonePromise;
