@@ -23,6 +23,7 @@ public:
   Matrix * changeOverMatrix;
   Matrix * distanceMatrix; 
 
+  int maxGlobalBest = 3;
   std::vector<Solution*> globalBestSolutions;
   int maxPersonalBest = 3;
   std::vector<Solution*> personalBestSolutions;
@@ -41,7 +42,6 @@ public:
   int RateSolution(Solution&);
   bool UpdatePersonalPopulation(Solution&);
   bool UpdateGlobalPopulation(Solution&);
-  bool UpdatePopulation(std::vector<Solution*>&, int, Solution&);
 
   static NAN_MODULE_INIT(Init);
   static NAN_METHOD(New);

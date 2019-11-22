@@ -262,65 +262,47 @@ void Agent::Solve(Solution &sol){
   }
 }
 
-/**
- * Could bey useful to sort them
- * not sure yet
- */
-bool Agent::UpdatePersonalPopulation(Solution &sol){
-  if (personalBestSolutions.size() < maxPersonalBest){
-    personalBestSolutions.push_back(&sol);
-    return true;
+void PlaceSolAtPosition(std::vector<Solution*> &population, Solution * sol, int i){
+  if (i < population.size()){
+    population[i] = sol;
+  } else {
+    population.push_back(sol);
   }
-  unsigned int i = 0;
-  while (i < personalBestSolutions.size()){
-    if (personalBestSolutions.at(i)->quality < sol.quality){
-      break;
-    }
-    i++;
-  }
-  if (i < personalBestSolutions.size()){
-    /**
-     * TODO UNSAFE
-     * not sure yet whether it is safe to delete that solution,
-     * as it may be used in the node thread.
-     */
-    //delete personalBestSolutions[i];
-    personalBestSolutions[i] = &sol;
-    return true;
-  }
-  return false;
 }
 
-//TODO
-bool Agent::UpdateGlobalPopulation(Solution &sol){
-  return true;
-}
-
-bool Agent::UpdatePopulation(std::vector<Solution*> &population, int populationSize, Solution &sol){
-  unsigned int i = population.size();
-  while (i - 1 >= 0){
+bool UpdatePopulation(std::vector<Solution*> &population, int populationSize, Solution &sol){
+  int i = population.size() - 1;
+  while (i >= 0){
     // smaller quality is better
-    if ( sol.quality < population.at(i - 1)->quality){
-      if (i < populationSize){
-        population[i] = population[i - 1];
+    if ( sol.quality < population[i]->quality){
+      if (i + 1 < populationSize){
+        PlaceSolAtPosition(population, population[i], i + 1);
       } else {
         /**
          * TODO UNSAFE
          * not sure yet whether it is safe to delete that solution,
          * as it may be used in the node thread.
          */
-        //delete population[i-1];
+        //delete population[i];
       }
       i--;
     } else {
       break;
     }
   }
-  if (i < populationSize){
-    population[i] = &sol;
+  if (i + 1 < populationSize){
+    PlaceSolAtPosition(population, &sol, i + 1);
     return true;
   }
   return false;
+}
+
+bool Agent::UpdatePersonalPopulation(Solution &sol){
+  return UpdatePopulation(personalBestSolutions, maxPersonalBest, sol);
+}
+
+bool Agent::UpdateGlobalPopulation(Solution &sol){
+  return UpdatePopulation(globalBestSolutions, maxGlobalBest, sol);
 }
 
 void Agent::HandleNewBestSolution(Solution &sol){
