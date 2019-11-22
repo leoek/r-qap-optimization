@@ -49,7 +49,7 @@ NAN_METHOD(Agent::New) {
   Agent* self = new Agent();
   self->Wrap(info.Holder());
 
-  self->newPersonalBestSolutionCallback = callback;
+  self->newBestSolutionCallback = callback;
 
   // initialize it's values
   Local<Array> factoryJsArray = Local<Array>::Cast(info[0]);
@@ -296,7 +296,34 @@ bool Agent::UpdateGlobalPopulation(Solution &sol){
   return true;
 }
 
-void Agent::HandleNewPersonalBestSolution(Solution &sol){
+bool Agent::UpdatePopulation(std::vector<Solution*> &population, int populationSize, Solution &sol){
+  unsigned int i = population.size();
+  while (i - 1 >= 0){
+    // smaller quality is better
+    if ( sol.quality < population.at(i - 1)->quality){
+      if (i < populationSize){
+        population[i] = population[i - 1];
+      } else {
+        /**
+         * TODO UNSAFE
+         * not sure yet whether it is safe to delete that solution,
+         * as it may be used in the node thread.
+         */
+        //delete population[i-1];
+      }
+      i--;
+    } else {
+      break;
+    }
+  }
+  if (i < populationSize){
+    population[i] = &sol;
+    return true;
+  }
+  return false;
+}
+
+void Agent::HandleNewBestSolution(Solution &sol){
   // Create new wrapped solution instance _sol
   v8::Local<v8::Array> jsArray = Nan::New<v8::Array>(sol.permutation.size());
   for (size_t i = 0; i < sol.permutation.size(); i++)
@@ -320,7 +347,7 @@ void Agent::HandleNewPersonalBestSolution(Solution &sol){
       , _sol
     };
 
-  newPersonalBestSolutionCallback->Call(argc, callback_argv);
+  newBestSolutionCallback->Call(argc, callback_argv);
 }
 
 bool Agent::CreateSolution(){
@@ -331,7 +358,7 @@ bool Agent::CreateSolution(){
   if (isInPersonalBest){
       const bool isInLocalGlobalBest = UpdateGlobalPopulation(*sol);
       if (isInLocalGlobalBest){
-        HandleNewPersonalBestSolution(*sol);
+        HandleNewBestSolution(*sol);
       }
   }
   return isInPersonalBest;
@@ -361,7 +388,7 @@ NAN_METHOD(Agent::_CreateSolution) {
           Nan::Null()
         , _sol
       };
-      (self->newPersonalBestSolutionCallback)->Call(2, callback_argv);
+      (self->newBestSolutionCallback)->Call(2, callback_argv);
     }
   }
 

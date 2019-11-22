@@ -32,8 +32,8 @@ public:
   int gBestPopulationWeight = 1;
   int rndWeight = 1;
 
-  Nan::Callback* newPersonalBestSolutionCallback;
-  void HandleNewPersonalBestSolution(Solution&);
+  Nan::Callback* newBestSolutionCallback;
+  void HandleNewBestSolution(Solution&);
 
   int GetNextValue();
   void ResetFactories();
@@ -41,6 +41,7 @@ public:
   int RateSolution(Solution&);
   bool UpdatePersonalPopulation(Solution&);
   bool UpdateGlobalPopulation(Solution&);
+  bool UpdatePopulation(std::vector<Solution*>&, int, Solution&);
 
   static NAN_MODULE_INIT(Init);
   static NAN_METHOD(New);
