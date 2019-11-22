@@ -49,7 +49,7 @@ const main = async () => {
   const workerCount = 4;
   const start = performance.now();
 
-  if (!cluster.isMaster) {
+  if (cluster.isWorker) {
     console.log(`Worker ${process.pid} started`);
     const agent = new agentaddon.Agent(
       factories,
@@ -57,16 +57,27 @@ const main = async () => {
       flowMatrix,
       changeOverMatrix,
       distanceMatrix,
-      (err, solution) => console.log("called back", { err, solution })
+      (err, solution) =>
+        undefined && console.log("called back", { err, solution })
     );
+
+    // Receive messages from the master process.
+    process.on("message", msg => {
+      console.log(
+        "Worker " + process.pid + " received message from master.",
+        msg
+      );
+    });
+
     const reportSolutionToMaster = (solution, createdCount) => {
+      /*
       console.log("WORKER", {
         cmd: {
           quality: solution.quality,
           workerId: cluster.worker.id,
           createdCount
         }
-      });
+      });*/
       process.send({
         cmd: {
           solution,
@@ -100,8 +111,35 @@ const main = async () => {
   );
   const createdWorkerSolutions = Array(workerCount).fill(0);
 
+  // Receive Solutions from Workers
+  const messageHandler = msg => {
+    if (msg.cmd && msg.cmd.createdSolutions) {
+      createdWorkerSolutions[msg.cmd.workerId] = msg.cmd.createdSolutions;
+      createdSolutions = createdWorkerSolutions.reduce(
+        (sum, val) => (sum += val),
+        0
+      );
+    }
+    if (msg.cmd && msg.cmd.solution) {
+      if (!best || best.quality > msg.cmd.solution.quality) {
+        best = msg.cmd.solution;
+      }
+      for (const id in cluster.workers) {
+        console.log("sendingmsg bla to", id);
+        cluster.workers[id].process.send({ msg: "bla" });
+      }
+    }
+    console.log("MASTER", {
+      quality: best.quality,
+      createdSolutions,
+      permutation: best.permutation
+    });
+  };
+
   for (let i = 0; i < workerCount; i++) {
-    cluster.fork();
+    const worker = cluster.fork();
+    worker.on("message", messageHandler);
+    worker.send({ hello: "world" });
   }
 
   // Handle Worker Exit
@@ -116,31 +154,6 @@ const main = async () => {
       executionDoneCallback();
     }
   });
-
-  // Receive Solutions from Workers
-  const messageHandler = msg => {
-    if (msg.cmd && msg.cmd.createdSolutions) {
-      createdWorkerSolutions[msg.cmd.workerId] = msg.cmd.createdSolutions;
-      createdSolutions = createdWorkerSolutions.reduce(
-        (sum, val) => (sum += val),
-        0
-      );
-    }
-    if (msg.cmd && msg.cmd.solution) {
-      if (!best || best.quality > msg.cmd.solution.quality) {
-        best = msg.cmd.solution;
-      }
-    }
-    console.log("MASTER", {
-      quality: best.quality,
-      createdSolutions,
-      permutation: best.permutation
-    });
-  };
-
-  for (const id in cluster.workers) {
-    cluster.workers[id].on("message", messageHandler);
-  }
 
   console.log("MASTER", "waiting for execution promise to resolve");
   await executionDonePromise;

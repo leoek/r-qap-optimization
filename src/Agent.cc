@@ -17,7 +17,7 @@ NAN_MODULE_INIT(Agent::Init) {
   Nan::SetAccessor(ctor->InstanceTemplate(), Nan::New("z").ToLocalChecked(), Agent::HandleGetters, Agent::HandleSetters);
   Nan::SetAccessor(ctor->InstanceTemplate(), Nan::New("intarray").ToLocalChecked(), Agent::HandleGetters, Agent::HandleSetters);
 
-  Nan::SetPrototypeMethod(ctor, "add", Add);
+  Nan::SetPrototypeMethod(ctor, "addGlobalSolution", AddGlobalSolution);
   Nan::SetPrototypeMethod(ctor, "createSolution", _CreateSolution);
 
   target->Set(Nan::New("Agent").ToLocalChecked(), ctor->GetFunction());
@@ -80,48 +80,23 @@ NAN_METHOD(Agent::New) {
   info.GetReturnValue().Set(info.Holder());
 }
 
-NAN_METHOD(Agent::Add) {
+NAN_METHOD(Agent::AddGlobalSolution) {
   // unwrap this Agent
   Agent * self = Nan::ObjectWrap::Unwrap<Agent>(info.This());
 
-  if (!Nan::New(Agent::constructor)->HasInstance(info[0])) {
-    return Nan::ThrowError(Nan::New("Agent::Add - expected argument to be instance of Agent").ToLocalChecked());
-  }
-  if (!Nan::New(Solution::constructor)->HasInstance(info[1])) {
-    return Nan::ThrowError(Nan::New("Agent::Add - expected argument to be instance of Solution").ToLocalChecked());
+  if (!Nan::New(Solution::constructor)->HasInstance(info[0])) {
+    return Nan::ThrowError(Nan::New("Agent::AddGlobalSolution - expected argument to be instance of Solution").ToLocalChecked());
   }
 
-  Local<Array> jsArray = Local<Array>::Cast(info[2]);
-
-  vector<Solution*> solArray;
-   for (unsigned int i = 0; i < jsArray->Length(); i++)
-  {
-    Handle<Value> val = jsArray->Get(i);
-    Solution * solVal = Nan::ObjectWrap::Unwrap<Solution>(val->ToObject());
-    printf("solval x value %f", solVal->quality);
-    solArray.push_back(solVal);
+  Solution * newSol = Nan::ObjectWrap::Unwrap<Solution>(info[1]->ToObject());
+  if (newSol->quality < 0){
+    return Nan::ThrowError(Nan::New("Agent::AddGlobalSolution - Solution must have a quality assigned").ToLocalChecked());
   }
-
-  // unwrap the Agent passed as argument
-  Agent * otherVec = Nan::ObjectWrap::Unwrap<Agent>(info[0]->ToObject());
-  Solution * otherSolution = Nan::ObjectWrap::Unwrap<Solution>(info[1]->ToObject());
-
-  printf("sol quality %f", otherSolution->quality);
-
-  // specify argument counts and constructor arguments
-  const int argc = 4;
-  v8::Local<v8::Value> argv[argc] = {
-    Nan::New(self->x + otherVec->x),
-    Nan::New(self->y + otherVec->y),
-    Nan::New(self->z + otherVec->z)
-  };
-
-  // get a local handle to our constructor function
-  //v8::Local<v8::Function> constructorFunc = Nan::New(Agent::constructor)->GetFunction();
-  // create a new JS instance from arguments
-  //v8::Local<v8::Object> jsSumVec = Nan::NewInstance(constructorFunc, argc, argv).ToLocalChecked();
-
-  //info.GetReturnValue().Set(jsSumVec);
+  if (newSol->GetLength() != self->machines.size()){
+    return Nan::ThrowError(Nan::New("Agent::AddGlobalSolution - Solution must have correct length").ToLocalChecked());
+  }
+  bool added = self->UpdateGlobalPopulation(*newSol);
+  info.GetReturnValue().Set(added);
 }
 
 NAN_GETTER(Agent::HandleGetters) {

@@ -45,7 +45,7 @@ public:
 
   static NAN_MODULE_INIT(Init);
   static NAN_METHOD(New);
-  static NAN_METHOD(Add);
+  static NAN_METHOD(AddGlobalSolution);
   bool CreateSolution();
   static NAN_METHOD(_CreateSolution);
 

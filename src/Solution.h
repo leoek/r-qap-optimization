@@ -5,7 +5,7 @@
 
 class Solution : public Nan::ObjectWrap {
 public:
-  double quality;
+  double quality = -1;
   std::vector<int> permutation;
 
   static NAN_MODULE_INIT(Init);
