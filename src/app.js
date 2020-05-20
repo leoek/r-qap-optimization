@@ -4,6 +4,7 @@ import getParametersFromArgs from "./lib/parameterParser";
 import { getPerformaceTools, sleep, objectValues, compose } from "./helpers";
 import createRQAPParser from "./lib/rqapParser";
 import createQAPParser from "./lib/qapParser";
+import rateSolution from "./lib/rateSolution";
 
 const addon = bindings("nativeaddon");
 const agentaddon = bindings("agentaddon");
@@ -92,7 +93,7 @@ const main = async () => {
       });
     };
     let i = 0;
-    while (++i < 100) {
+    while (++i < 10000) {
       const solution = agent.createSolution();
       //Check whether the new solution is better than the workers current best
       if (!best || best.quality > solution.quality) {
@@ -210,18 +211,27 @@ const main = async () => {
   const runtime = end - start;
   const runlength = createdSolutions;
   const seed = null;
-  const bestSol = best.quality;
+  const bestQuality = best.quality;
   console.log(`\nHuman readable result \n`, {
     solved,
     runtime: `${runtime} ms`,
     runlength,
-    bestSol
+    bestQuality
   });
   console.log(
-    `\nResult for ParamILS: ${solved}, ${runtime}, ${runlength}, ${bestSol}, ${seed}`
+    `\nResult for ParamILS: ${solved}, ${runtime}, ${runlength}, ${bestQuality}, ${seed}`
   );
 
-  //await sleep(100000)
+  /*
+  // [ 4, 5, 9, 1, 3, 7, 10, 0, 11, 6, 8, 2 ]
+  const optimalNug12 = [12,7,9,3,4,8,11,1,5,6,10,2].map(val => val - 1)
+  const quality = rateSolution(instance)(optimalNug12);
+  const bestJsQuality = rateSolution(instance)(best.permutation);
+  if (bestQuality !== bestJsQuality){
+    console.error("Missmatch between js quality calculation and native quality calculation")
+  }
+  console.log({ best, quality, bestJsQuality })
+  */
 };
 
 try {
