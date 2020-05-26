@@ -1,9 +1,10 @@
 {
-    "files.associations": {
-        "vector": "cpp",
-        "array": "cpp",
-        "initializer_list": "cpp",
-        "string_view": "cpp",
-        "utility": "cpp"
-    }
+  "files.associations": {
+    "vector": "cpp",
+    "array": "cpp",
+    "initializer_list": "cpp",
+    "string_view": "cpp",
+    "utility": "cpp",
+    "string": "cpp"
+  }
 }

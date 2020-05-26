@@ -144,8 +144,8 @@ NAN_SETTER(Agent::HandleSetters) {
 int Agent::GetNextValue(){
   //printf("\ncurrentMachine %i / %i", currentMachineIndex, machines.size());
   if (currentMachineIndex < 0 || currentMachineIndex >= machines.size()){
-      printf("fail currentMachineIndex %i", currentMachineIndex);
-    }
+    printf("fail currentMachineIndex %i", currentMachineIndex);
+  }
   Machine * currentMachine = machines.at(currentMachineIndex);
   // #PERFORMANCE
   // check the capacity requirement after selecting randomly
@@ -172,6 +172,13 @@ int Agent::GetNextValue(){
       int possibleIndex = -1;
       if (populationSelector < rndWeight + gBestPopulationWeight && globalBestSolutions.size() >= 1){
         Solution * srcSol = selector(globalBestSolutions);
+        if (currentMachineIndex >= srcSol->permutation.size()){
+          printf("\nglobalBestSolutions: \n");
+          for (unsigned int k = 0; k < globalBestSolutions.size(); k++){
+            printf("%i %s \n", k, globalBestSolutions.at(k)->ToString().c_str());
+          }
+          printf("fail currentMachineIndex index access %i \n", currentMachineIndex);
+        }
         possibleIndex = srcSol->permutation.at(currentMachineIndex);
 
       } else if (populationSelector < rndWeight + gBestPopulationWeight + pBestPopulationWeight && personalBestSolutions.size() >= 1){
@@ -181,10 +188,11 @@ int Agent::GetNextValue(){
         // This seems to be a node related issue... it does not happen if the solution
         // is not created as a js instance
         if (currentMachineIndex >= srcSol->permutation.size()){
-          printf("\nselected invalid srcSol from personal best %i / %i", currentMachineIndex, srcSol->permutation.size());
-          printf("\nquality: %i, sol: ", srcSol->quality);
-          for (unsigned int k = 0; k < srcSol->permutation.size(); k++){
-            printf(" %i ", srcSol->permutation.at(k));
+          printf("\nselected invalid srcSol from personal best %i / %i \n", currentMachineIndex, srcSol->permutation.size());
+          printf(srcSol->ToString().c_str());
+          printf("\npersonalBestSolutions: \n");
+          for (unsigned int k = 0; k < personalBestSolutions.size(); k++){
+            printf("%i %s \n", k, personalBestSolutions.at(k)->ToString().c_str());
           }
           printf("\n");
         } else {
@@ -201,7 +209,7 @@ int Agent::GetNextValue(){
       }
     }
   }
-  // Use the size of currenMachine inthe chosen factory
+  // Use the size of currenMachine in the chosen factory
   factories.at(selected)->UseCapacity(currentMachine->size);
   return selected;
 }
@@ -273,10 +281,16 @@ bool UpdatePopulation(std::vector<Solution*> &population, int populationSize, So
 }
 
 bool Agent::UpdatePersonalPopulation(Solution &sol){
+  if (sol.GetLength() != 12){
+    printf("\n updating personal best with %s \n", sol.ToString().c_str());
+  }
   return UpdatePopulation(personalBestSolutions, maxPersonalBest, sol);
 }
 
 bool Agent::UpdateGlobalPopulation(Solution &sol){
+  if (sol.GetLength() != 12){
+    printf("\n updating global best with %s \n", sol.ToString().c_str());
+  }
   return UpdatePopulation(globalBestSolutions, maxGlobalBest, sol);
 }
 

@@ -2,6 +2,7 @@
 #define AGENT_ADDON_SOLUTION_H_
 
 #include <nan.h>
+#include "stringFormat.cc"
 
 class Solution : public Nan::ObjectWrap {
 public:
@@ -15,6 +16,7 @@ public:
   static NAN_METHOD(_Add);
 
   int GetLength();
+  std::string ToString();
   static NAN_METHOD(_GetLength);
 
   static NAN_GETTER(HandleGetters);

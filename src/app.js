@@ -52,7 +52,7 @@ const main = async () => {
   // This will contain the best solution (this is a native instance)
   let best = null;
   let createdSolutions = 0;
-  const workerCount = 4;
+  const workerCount = 1;
   const start = performance.now();
 
   if (cluster.isWorker) {
@@ -93,7 +93,7 @@ const main = async () => {
       });
     };
     let i = 0;
-    while (++i < 10000) {
+    while (++i < 10000000) {
       const solution = agent.createSolution();
       //Check whether the new solution is better than the workers current best
       if (!best || best.quality > solution.quality) {

@@ -97,6 +97,14 @@ NAN_METHOD(Solution::_Add) {
   info.GetReturnValue().Set(size);
 }
 
+std::string Solution::ToString(){
+  std::string result = string_format("quality: %f; length: %i; permutation: ", quality, GetLength());
+  for (unsigned int k = 0; k < permutation.size(); k++){
+    result += string_format(" %d ", permutation.at(k));
+  }
+  return result;
+}
+
 NAN_GETTER(Solution::HandleGetters) {
   Solution* self = Nan::ObjectWrap::Unwrap<Solution>(info.This());
 
