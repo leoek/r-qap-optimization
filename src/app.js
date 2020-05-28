@@ -93,7 +93,7 @@ const main = async () => {
       });
     };
     let i = 0;
-    while (++i < 10000000) {
+    while (++i < 10000) {
       const solution = agent.createSolution();
       //Check whether the new solution is better than the workers current best
       if (!best || best.quality > solution.quality) {
@@ -153,7 +153,7 @@ const main = async () => {
     console.log("MASTER", `worker ${worker.process.pid} died`);
     console.log("MASTER:", {
       createdSolutions,
-      quality: best.quality,
+      quality: best ? best.quality : null,
       workersLeft: objectValues(cluster.workers).length
     });
     if (objectValues(cluster.workers).length === 0) {
@@ -211,7 +211,7 @@ const main = async () => {
   const runtime = end - start;
   const runlength = createdSolutions;
   const seed = null;
-  const bestQuality = best.quality;
+  const bestQuality = best ? best.quality : null;
   console.log(`\nHuman readable result \n`, {
     solved,
     runtime: `${runtime} ms`,

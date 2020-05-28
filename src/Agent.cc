@@ -142,10 +142,6 @@ NAN_SETTER(Agent::HandleSetters) {
 }
 
 int Agent::GetNextValue(){
-  //printf("\ncurrentMachine %i / %i", currentMachineIndex, machines.size());
-  if (currentMachineIndex < 0 || currentMachineIndex >= machines.size()){
-    printf("fail currentMachineIndex %i", currentMachineIndex);
-  }
   Machine * currentMachine = machines.at(currentMachineIndex);
   // #PERFORMANCE
   // check the capacity requirement after selecting randomly
@@ -173,28 +169,14 @@ int Agent::GetNextValue(){
       if (populationSelector < rndWeight + gBestPopulationWeight && globalBestSolutions.size() >= 1){
         Solution * srcSol = selector(globalBestSolutions);
         if (currentMachineIndex >= srcSol->permutation.size()){
-          printf("\nglobalBestSolutions: \n");
-          for (unsigned int k = 0; k < globalBestSolutions.size(); k++){
-            printf("%i %s \n", k, globalBestSolutions.at(k)->ToString().c_str());
-          }
-          printf("fail currentMachineIndex index access %i \n", currentMachineIndex);
+          printf("selected invalid srcSol from global best %i / %i, srcSol: %s \n", currentMachineIndex, srcSol->permutation.size(), srcSol->ToString().c_str());
+        } else {
+          possibleIndex = srcSol->permutation.at(currentMachineIndex);
         }
-        possibleIndex = srcSol->permutation.at(currentMachineIndex);
-
       } else if (populationSelector < rndWeight + gBestPopulationWeight + pBestPopulationWeight && personalBestSolutions.size() >= 1){
         Solution * srcSol = selector(personalBestSolutions);
-        // TODO
-        // Not sure how this can happen yet
-        // This seems to be a node related issue... it does not happen if the solution
-        // is not created as a js instance
         if (currentMachineIndex >= srcSol->permutation.size()){
-          printf("\nselected invalid srcSol from personal best %i / %i \n", currentMachineIndex, srcSol->permutation.size());
-          printf(srcSol->ToString().c_str());
-          printf("\npersonalBestSolutions: \n");
-          for (unsigned int k = 0; k < personalBestSolutions.size(); k++){
-            printf("%i %s \n", k, personalBestSolutions.at(k)->ToString().c_str());
-          }
-          printf("\n");
+          printf("selected invalid srcSol from local best %i / %i, srcSol: %s \n", currentMachineIndex, srcSol->permutation.size(), srcSol->ToString().c_str());
         } else {
           possibleIndex = srcSol->permutation.at(currentMachineIndex);
         }
@@ -238,6 +220,16 @@ int Agent::RateSolution(Solution &sol){
 
 void Agent::Solve(Solution &sol){
   ResetFactories();
+  #ifdef DEBUG_OUTPUT
+  printf("\nsolve with globalBestSolutions: \n");
+  for (unsigned int k = 0; k < globalBestSolutions.size(); k++){
+    printf("%i %s \n", k, globalBestSolutions.at(k)->ToString().c_str());
+  }
+  printf("\nsolve with personalBestSolutions: \n");
+  for (unsigned int k = 0; k < personalBestSolutions.size(); k++){
+    printf("%i %s \n", k, personalBestSolutions.at(k)->ToString().c_str());
+  }
+  #endif // DEBUG_OUTPUT
   currentMachineIndex = 0;
   while(currentMachineIndex < machines.size()){
     sol.Add(GetNextValue());
@@ -245,7 +237,14 @@ void Agent::Solve(Solution &sol){
   }
 }
 
+/**
+ * There shouldn't be any solutions in here which might be interfered with by js!
+ * It seems to cause issues during longer runs. (garbage collection?)
+ */
 void PlaceSolAtPosition(std::vector<Solution*> &population, Solution * sol, int i){
+  #ifdef DEBUG_OUTPUT
+  printf("PlaceSolAtPosition pos: %i, size: %i, solution: %s \n",i, population.size(), sol->ToString());
+  #endif // DEBUG_OUTPUT
   if (i < population.size()){
     population[i] = sol;
   } else {
@@ -281,20 +280,14 @@ bool UpdatePopulation(std::vector<Solution*> &population, int populationSize, So
 }
 
 bool Agent::UpdatePersonalPopulation(Solution &sol){
-  if (sol.GetLength() != 12){
-    printf("\n updating personal best with %s \n", sol.ToString().c_str());
-  }
   return UpdatePopulation(personalBestSolutions, maxPersonalBest, sol);
 }
 
 bool Agent::UpdateGlobalPopulation(Solution &sol){
-  if (sol.GetLength() != 12){
-    printf("\n updating global best with %s \n", sol.ToString().c_str());
-  }
   return UpdatePopulation(globalBestSolutions, maxGlobalBest, sol);
 }
 
-void Agent::HandleNewBestSolution(Solution &sol){
+Local<Object> CreateWrappedSolution(Solution &sol){
   // Create new wrapped solution instance _sol
   v8::Local<v8::Array> jsArray = Nan::New<v8::Array>(sol.permutation.size());
   for (size_t i = 0; i < sol.permutation.size(); i++)
@@ -310,6 +303,12 @@ void Agent::HandleNewBestSolution(Solution &sol){
 
   Local<Function> constructorFunc = Nan::New(Solution::constructor)->GetFunction();
   Local<Object> _sol = Nan::NewInstance(constructorFunc, argc, argv).ToLocalChecked();
+  return _sol;
+}
+
+void Agent::ReportNewBestSolution(Solution &sol){
+  // Create new wrapped solution instance _sol
+  Local<Object> _sol = CreateWrappedSolution(sol);
 
   // Call Callback with that wrapped instance
   const int callback_argc = 2;
@@ -318,50 +317,38 @@ void Agent::HandleNewBestSolution(Solution &sol){
       , _sol
     };
 
-  newBestSolutionCallback->Call(argc, callback_argv);
+  newBestSolutionCallback->Call(callback_argc, callback_argv);
 }
 
-bool Agent::CreateSolution(){
-  Solution * sol = new Solution();
-  Solve(*sol);
-  RateSolution(*sol);
-  const bool isInPersonalBest = UpdatePersonalPopulation(*sol);
+bool Agent::HandleNewSolution(Solution &sol){
+  const bool isInPersonalBest = UpdatePersonalPopulation(sol);
   if (isInPersonalBest){
-      const bool isInLocalGlobalBest = UpdateGlobalPopulation(*sol);
+      const bool isInLocalGlobalBest = UpdateGlobalPopulation(sol);
       if (isInLocalGlobalBest){
-        HandleNewBestSolution(*sol);
+        ReportNewBestSolution(sol);
       }
   }
   return isInPersonalBest;
 }
 
-//TODO use CreateSolution function here once Getters for the created Solutions are ready
+Solution* Agent::CreateSolution(){
+  Solution* sol = new Solution();
+  Solve(*sol);
+  RateSolution(*sol);
+  HandleNewSolution(*sol);
+  return sol;
+}
+
 NAN_METHOD(Agent::_CreateSolution) {
   // unwrap this Agent
   Agent * self = Nan::ObjectWrap::Unwrap<Agent>(info.This());
-
-  const int argc = 0;
-  v8::Local<v8::Value> argv[argc] = {};
-  // get a local handle to our constructor function
-  Local<Function> constructorFunc = Nan::New(Solution::constructor)->GetFunction();
-  // create a new JS instance from arguments
-  Local<Object> _sol = Nan::NewInstance(constructorFunc, argc, argv).ToLocalChecked();
-  Solution * sol = Nan::ObjectWrap::Unwrap<Solution>(_sol);
-  self->Solve(*sol);
-  self->RateSolution(*sol);
-  
-  const bool isInPersonalBest = self->UpdatePersonalPopulation(*sol);
-  if (isInPersonalBest){
-    const bool isInLocalGlobalBest = self->UpdateGlobalPopulation(*sol);
-    if (isInLocalGlobalBest){
-      // invoke callback with new solution
-      Local<Value> callback_argv[] = {
-          Nan::Null()
-        , _sol
-      };
-      (self->newBestSolutionCallback)->Call(2, callback_argv);
-    }
-  }
-
+  // create new solution (native)
+  Solution* sol = self->CreateSolution();
+  /**
+   * return a wrapped copy to make sure that the create solution
+   * which is stored in the population wont be affected by any
+   * js stuff
+   */
+  Local<Object> _sol = CreateWrappedSolution(*sol);
   info.GetReturnValue().Set(_sol);
 }

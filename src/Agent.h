@@ -2,6 +2,8 @@
 #ifndef AGENT_ADDON_AGENT_H_
 #define AGENT_ADDON_AGENT_H_
 
+// #define __DEBUG_OUTPUT
+
 #include <nan.h>
 #include "Solution.h"
 #include "Factory.h"
@@ -34,7 +36,8 @@ public:
   int rndWeight = 1;
 
   Nan::Callback* newBestSolutionCallback;
-  void HandleNewBestSolution(Solution&);
+  void ReportNewBestSolution(Solution&);
+  bool HandleNewSolution(Solution&);
 
   int GetNextValue();
   void ResetFactories();
@@ -46,7 +49,7 @@ public:
   static NAN_MODULE_INIT(Init);
   static NAN_METHOD(New);
   static NAN_METHOD(AddGlobalSolution);
-  bool CreateSolution();
+  Solution* CreateSolution();
   static NAN_METHOD(_CreateSolution);
 
   static NAN_GETTER(HandleGetters);
