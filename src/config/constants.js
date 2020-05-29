@@ -1,3 +1,7 @@
 export const ERROR = {
   INVALID_INPUT_SYNTAX: "INVALID_INPUT_SYNTAX"
 };
+
+export const MESSAGE_TYPE = {
+  NEW_SOLUTION: "NEW_SOLUTION"
+};

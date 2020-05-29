@@ -2,7 +2,7 @@
 #ifndef AGENT_ADDON_AGENT_H_
 #define AGENT_ADDON_AGENT_H_
 
-// #define __DEBUG_OUTPUT
+//#define DEBUG_OUTPUT
 
 #include <nan.h>
 #include "Solution.h"

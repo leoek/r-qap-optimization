@@ -5,6 +5,7 @@ import { getPerformaceTools, sleep, objectValues, compose } from "./helpers";
 import createRQAPParser from "./lib/rqapParser";
 import createQAPParser from "./lib/qapParser";
 import rateSolution from "./lib/rateSolution";
+import { MESSAGE_TYPE } from "./config";
 
 const addon = bindings("nativeaddon");
 const agentaddon = bindings("agentaddon");
@@ -15,10 +16,21 @@ const rqapParser = createQAPParser();
 const parameters = getParametersFromArgs();
 console.log("Parameters", parameters);
 
-// Receive messages from the master process.
-process.on("message", msg => {
-  console.log("Worker " + process.pid + " received message from master.", msg);
+const newMessage = (type, payload) => ({
+  type,
+  payload,
+  processId: process.pid
 });
+
+const broadcast = msg => {
+  if (cluster.isMaster) {
+    objectValues(cluster.workers).forEach(worker => {
+      worker.send(msg);
+    }, this);
+  } else {
+    console.error("Broadcasts can only be done by the master process");
+  }
+};
 
 const main = async () => {
   /**
@@ -52,7 +64,7 @@ const main = async () => {
   // This will contain the best solution (this is a native instance)
   let best = null;
   let createdSolutions = 0;
-  const workerCount = 1;
+  const workerCount = 2;
   const start = performance.now();
 
   if (cluster.isWorker) {
@@ -67,33 +79,41 @@ const main = async () => {
         undefined && console.log("called back", { err, solution })
     );
 
-    // Receive messages from the master process.
-    process.on("message", msg => {
-      console.log(
-        "Worker " + process.pid + " received message from master.",
-        msg
-      );
-    });
-
     const reportSolutionToMaster = (solution, createdCount) => {
-      /*
-      console.log("WORKER", {
-        cmd: {
-          quality: solution.quality,
-          workerId: cluster.worker.id,
-          createdCount
-        }
-      });*/
-      process.send({
-        cmd: {
+      process.send(
+        newMessage(MESSAGE_TYPE.NEW_SOLUTION, {
           solution,
           workerId: cluster.worker.id,
           createdSolutions: createdCount
-        }
-      });
+        })
+      );
     };
+
+    // Receive messages from the master process.
+    process.on("message", msg => {
+      false &&
+        console.log(
+          "Worker " + process.pid + " received message from master.",
+          msg
+        );
+      if (msg.type === MESSAGE_TYPE.NEW_SOLUTION) {
+        const { solution, workerId } = msg.payload;
+        console.log(workerId, cluster.worker.id, msg);
+        if (workerId !== cluster.worker.id) {
+          const nativeSolution = new agentaddon.Solution(
+            solution.permutation,
+            solution.quality
+          );
+          const result = agent.addGlobalSolution(nativeSolution);
+          console.log("result of new add global solution", result);
+        }
+      }
+    });
+
     let i = 0;
-    while (++i < 10000) {
+    while (++i < 100) {
+      // Worker needs time to recv messages before executing native code again...
+      await sleep(1);
       const solution = agent.createSolution();
       //Check whether the new solution is better than the workers current best
       if (!best || best.quality > solution.quality) {
@@ -119,33 +139,43 @@ const main = async () => {
 
   // Receive Solutions from Workers
   const messageHandler = msg => {
-    if (msg.cmd && msg.cmd.createdSolutions) {
-      createdWorkerSolutions[msg.cmd.workerId] = msg.cmd.createdSolutions;
+    false &&
+      console.log(
+        "Master " + process.pid + " received message from worker ",
+        msg
+      );
+    if (msg.payload && msg.payload.createdSolutions) {
+      createdWorkerSolutions[msg.payload.workerId] =
+        msg.payload.createdSolutions;
       createdSolutions = createdWorkerSolutions.reduce(
         (sum, val) => (sum += val),
         0
       );
     }
-    if (msg.cmd && msg.cmd.solution) {
-      if (!best || best.quality > msg.cmd.solution.quality) {
-        best = msg.cmd.solution;
+    if (
+      msg.type === MESSAGE_TYPE.NEW_SOLUTION &&
+      msg.payload &&
+      msg.payload.solution
+    ) {
+      if (!best || best.quality > msg.payload.solution.quality) {
+        best = msg.payload.solution;
+        if (best && false) {
+          console.log("MASTER", "new best", {
+            quality: best.quality,
+            createdSolutions,
+            permutation: best.permutation
+          });
+        }
       }
-      for (const id in cluster.workers) {
-        console.log("sendingmsg bla to", id);
-        cluster.workers[id].process.send({ msg: "bla" });
-      }
+      // broadcast new solutions to all workers
+      broadcast(newMessage(MESSAGE_TYPE.NEW_SOLUTION, msg.payload));
     }
-    console.log("MASTER", {
-      quality: best.quality,
-      createdSolutions,
-      permutation: best.permutation
-    });
   };
 
   for (let i = 0; i < workerCount; i++) {
     const worker = cluster.fork();
     worker.on("message", messageHandler);
-    worker.send({ hello: "world" });
+    worker.send({ hello: "worker", workerId: worker.id });
   }
 
   // Handle Worker Exit
@@ -216,7 +246,8 @@ const main = async () => {
     solved,
     runtime: `${runtime} ms`,
     runlength,
-    bestQuality
+    bestQuality,
+    best
   });
   console.log(
     `\nResult for ParamILS: ${solved}, ${runtime}, ${runlength}, ${bestQuality}, ${seed}`

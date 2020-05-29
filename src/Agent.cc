@@ -88,14 +88,31 @@ NAN_METHOD(Agent::AddGlobalSolution) {
     return Nan::ThrowError(Nan::New("Agent::AddGlobalSolution - expected argument to be instance of Solution").ToLocalChecked());
   }
 
-  Solution * newSol = Nan::ObjectWrap::Unwrap<Solution>(info[1]->ToObject());
-  if (newSol->quality < 0){
+  Solution* newSol = Nan::ObjectWrap::Unwrap<Solution>(info[0]->ToObject());
+  if (newSol->quality <= 0){
     return Nan::ThrowError(Nan::New("Agent::AddGlobalSolution - Solution must have a quality assigned").ToLocalChecked());
   }
   if (newSol->GetLength() != self->machines.size()){
     return Nan::ThrowError(Nan::New("Agent::AddGlobalSolution - Solution must have correct length").ToLocalChecked());
   }
+
+  #ifdef DEBUG_OUTPUT
+  printf("\nrecv addGlobalSolution callback\n");
+  printf("prev globalBestSolutions: \n");
+  for (unsigned int k = 0; k < self->globalBestSolutions.size(); k++){
+    printf("%i %s \n", k, self->globalBestSolutions.at(k)->ToString().c_str());
+  }
+  #endif // DEBUG_OUTPUT
+
   bool added = self->UpdateGlobalPopulation(*newSol);
+
+  #ifdef DEBUG_OUTPUT
+  printf("updating global population with new solution %s \n", newSol->ToString().c_str());
+  printf("new globalBestSolutions: \n");
+  for (unsigned int k = 0; k < self->globalBestSolutions.size(); k++){
+    printf("%i %s \n", k, self->globalBestSolutions.at(k)->ToString().c_str());
+  }
+  #endif // DEBUG_OUTPUT
   info.GetReturnValue().Set(added);
 }
 
@@ -242,9 +259,6 @@ void Agent::Solve(Solution &sol){
  * It seems to cause issues during longer runs. (garbage collection?)
  */
 void PlaceSolAtPosition(std::vector<Solution*> &population, Solution * sol, int i){
-  #ifdef DEBUG_OUTPUT
-  printf("PlaceSolAtPosition pos: %i, size: %i, solution: %s \n",i, population.size(), sol->ToString());
-  #endif // DEBUG_OUTPUT
   if (i < population.size()){
     population[i] = sol;
   } else {
