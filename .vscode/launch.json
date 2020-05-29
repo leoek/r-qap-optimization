@@ -19,6 +19,36 @@
       "cwd": "${workspaceRoot}",
       "outFiles": ["${workspaceRoot}/dist/**/*.js"],
       "sourceMaps": true
+    },
+    {
+      "type": "gdb",
+      "request": "launch",
+      "name": "start with gdb",
+      "target": "/home/leo/.nvm/versions/node/v8.16.0/bin/node",
+      "cwd": "${workspaceRoot}",
+      "arguments": "/home/leo/repos/r-qap-optimization/dist/app.js",
+      "valuesFormatting": "parseText"
+      //"preLaunchTask": "yarn_rebuild_debug"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "start with lldb",
+      //"preLaunchTask": "yarn_rebuild_debug",
+      "program": "/home/leo/.nvm/versions/node/v8.16.0/bin/node",
+      "args": ["/home/leo/repos/r-qap-optimization/dist/app.js"]
+    },
+    {
+      "name": "(lldb) Launch",
+      "type": "lldb",
+      "request": "launch",
+      "program": "/home/leo/.nvm/versions/node/v8.16.0/bin/node",
+      "args": ["--expose-internals", "dist/app.js"],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "externalConsole": true,
+      "MIMode": "lldb"
     }
   ]
 }
