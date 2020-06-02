@@ -19,7 +19,9 @@ const getLogPrefix = () => {
  * @param {string[]} options.logLevels List of levels which should be logged
  */
 const create = ({ logLevels = allLogLevels }) => {
-  const logger = {};
+  const logger = {
+    log: console.log
+  };
   allLogLevels.forEach(level => {
     if (logLevels.includes(level)) {
       logger[level] = (...args) => console[level](getLogPrefix(), ...args);

@@ -67,7 +67,7 @@ const main = async ({ logger, workerCount = 1, solutionCountTarget }) => {
       if (!best || best.quality > msg.payload.solution.quality) {
         best = msg.payload.solution;
         if (best) {
-          logger.info("new best", {
+          logger.log("new best", {
             quality: best.quality,
             createdSolutions,
             permutation: best.permutation
@@ -113,14 +113,14 @@ const main = async ({ logger, workerCount = 1, solutionCountTarget }) => {
   const runlength = createdSolutions;
   const seed = null;
   const bestQuality = best ? best.quality : null;
-  logger.info(`Human readable result: \n`, {
+  logger.log(`Human readable result: \n`, {
     solved,
     runtime: `${runtime} ms`,
     createdSolutions,
     bestQuality,
     best
   });
-  logger.info(
+  logger.log(
     `Result for ParamILS: ${solved}, ${runtime}, ${runlength}, ${bestQuality}, ${seed}`
   );
 };

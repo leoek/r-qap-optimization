@@ -41,6 +41,7 @@ const main = async () => {
   }
 
   const { agents = 1, solutionCountTarget = 100 } = parameters;
+
   if (cluster.isMaster) {
     await masterMain({ logger, workerCount: agents, solutionCountTarget });
   } else if (cluster.isWorker) {
