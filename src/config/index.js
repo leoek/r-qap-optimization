@@ -3,10 +3,10 @@ export * from "./constants";
 export default {
   logging: {
     messages: false,
-    levels: ["error", "warn", "info", "debug"],
+    levels: ["error", "warn", "info"],
     messages: false,
-    master: true,
+    master: false,
     worker: false,
-    progressbar: false
+    progressbar: true
   }
 };

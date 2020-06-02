@@ -1,7 +1,7 @@
 export const getParametersFromArgs = () => {
   const parameters = {
     instanceName: "default",
-    agents: 1,
+    agents: 10,
     solutionCountTarget: 10000
   };
   process.argv.forEach((val, i) => {

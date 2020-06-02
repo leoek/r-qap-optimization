@@ -50,6 +50,7 @@
     "serve:debug": "node --inspect --nolazy dist/app.js",
     "watch": "nodemon dist/app.js",
     "watch:debug": "nodemon --inspect --nolazy dist/app.js",
+    "build": "yarn js:build && yarn native:build",
     "build:debug": "yarn js:build:debug && yarn native:build:debug",
     "rebuild:debug": "yarn js:build:debug && yarn native:rebuild:debug",
     "start": "nodemon -e js,ts,cc,h --watch src --exec \"yarn build:debug && yarn watch:debug\"",

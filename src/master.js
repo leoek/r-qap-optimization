@@ -18,7 +18,15 @@ const getCreatedSolutions = createdWorkerSolutions =>
  * @param {number} options.workerCount number of workers and therefore agents
  * @param {number=} options.solutionCountTarget number of solutions to create before stopping workers and therefore agents
  */
-const main = async ({ logger, workerCount = 1, solutionCountTarget }) => {
+const main = async ({
+  logger,
+  workerCount = 1,
+  solutionCountTarget,
+  overallProgress,
+  overallProgressTotal,
+  overallSolutionCount = 0,
+  overallSolutionCountTotal
+}) => {
   // This will contain the best solution (this is a native instance)
   let best = null;
   let createdSolutions = 0;
@@ -29,8 +37,7 @@ const main = async ({ logger, workerCount = 1, solutionCountTarget }) => {
     ? new cliProgress.SingleBar(
         {
           clearOnComplete: false,
-          format:
-            "progress [{bar}] {percentage}% | ETA: {eta_formatted} ({eta}s) | {value}/{total}"
+          format: `progress [{bar}] {percentage}% | ETA: {eta_formatted} ({eta}s) | {value}/{total} | ${overallProgress}/${overallProgressTotal} | {bestQuality}`
         },
         cliProgress.Presets.shades_classic
       )
@@ -59,7 +66,10 @@ const main = async ({ logger, workerCount = 1, solutionCountTarget }) => {
       createdWorkerSolutions[msg.payload.workerId] =
         msg.payload.createdSolutions;
       createdSolutions = getCreatedSolutions(createdWorkerSolutions);
-      showProgressBar && progressBar.update(createdSolutions);
+      showProgressBar &&
+        progressBar.update(overallSolutionCount + createdSolutions, {
+          bestQuality: best && best.quality
+        });
       if (solutionCountTarget && createdSolutions > solutionCountTarget) {
         broadcast(newMessage(MESSAGE_TYPE.STOP_SOLUTION_CREATION));
       }
@@ -80,7 +90,11 @@ const main = async ({ logger, workerCount = 1, solutionCountTarget }) => {
     }
   };
 
-  showProgressBar && progressBar.start(solutionCountTarget, 0);
+  showProgressBar &&
+    progressBar.start(
+      overallSolutionCountTotal || solutionCountTarget,
+      overallSolutionCount
+    );
 
   const start = performance.now();
   for (let i = 0; i < workerCount; i++) {
@@ -99,6 +113,15 @@ const main = async ({ logger, workerCount = 1, solutionCountTarget }) => {
     if (objectValues(cluster.workers).length === 0) {
       executionDoneCallback();
     }
+    /**
+     * There is sometimes a slight delay until the worker
+     * is gone from cluster.workers
+     */
+    setTimeout(() => {
+      if (objectValues(cluster.workers).length === 0) {
+        executionDoneCallback();
+      }
+    }, 100);
   });
 
   logger.info("waiting for execution promise to resolve");
@@ -124,6 +147,10 @@ const main = async ({ logger, workerCount = 1, solutionCountTarget }) => {
   logger.log(
     `Result for ParamILS: ${solved}, ${runtime}, ${runlength}, ${bestQuality}, ${seed}`
   );
+  return {
+    createdSolutions,
+    bestQuality
+  };
 };
 
 export default main;

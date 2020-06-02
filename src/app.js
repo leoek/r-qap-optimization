@@ -1,4 +1,7 @@
 import cluster from "cluster";
+
+import sum from "lodash/sum";
+
 import getParametersFromArgs from "./lib/parameterParser";
 import createQAPParser from "./lib/qapParser";
 import createRQAPParser from "./lib/rqapParser";
@@ -8,6 +11,7 @@ import config from "./config";
 
 import masterMain from "./master";
 import workerMain from "./worker";
+import { objectValues } from "./helpers";
 
 const qapParser = createQAPParser();
 const rqapParser = createRQAPParser();
@@ -34,21 +38,37 @@ const main = async () => {
    */
   let instance;
   try {
-    instance = await rqapParser.fileToNativeInstance({
-      name: "default" || parameters.instanceName
+    instance = await qapParser.fileToNativeInstance({
+      name: "nug12" || parameters.instanceName
     });
   } catch (error) {
     console.error("Could not create problem instance", error);
     throw error;
   }
 
-  const { agents = 1, solutionCountTarget = 100 } = parameters;
+  const { agents = 1, solutionCountTarget = 100, n = 100 } = parameters;
+  const solutionCountTargetPerWorker = Math.ceil(solutionCountTarget / agents);
 
   if (cluster.isMaster) {
-    await masterMain({ logger, workerCount: agents, solutionCountTarget });
+    let i = 0;
+    const qualities = [];
+    let createdSolutionCount = 0;
+    while (i++ < n) {
+      const { bestQuality, createdSolutions } = await masterMain({
+        logger,
+        workerCount: agents,
+        solutionCountTarget,
+        overallProgress: i,
+        overallProgressTotal: 100,
+        overallSolutionCount: createdSolutionCount,
+        overallSolutionCountTotal:
+          createdSolutionCount + (n - i) * solutionCountTargetPerWorker
+      });
+      createdSolutionCount += createdSolutions;
+      qualities.push(bestQuality);
+    }
+    logger.log(`Averaged Quality (n=${n}): `, sum(qualities) / n);
   } else if (cluster.isWorker) {
-    const solutionCountTargetPerWorker =
-      2 * Math.ceil(solutionCountTarget / agents);
     await workerMain({
       logger,
       instance,
