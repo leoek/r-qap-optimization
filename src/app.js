@@ -64,7 +64,7 @@ const main = async () => {
   // This will contain the best solution (this is a native instance)
   let best = null;
   let createdSolutions = 0;
-  const workerCount = 2;
+  const workerCount = 8;
   const start = performance.now();
 
   if (cluster.isWorker) {

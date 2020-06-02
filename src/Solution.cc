@@ -5,6 +5,15 @@ using namespace std;
 
 Nan::Persistent<v8::FunctionTemplate> Solution::constructor;
 
+Solution::Solution(){}
+
+Solution::Solution(Solution& old){
+  for (unsigned int i = 0; i < old.GetLength(); i++){
+    permutation.push_back(old.permutation.at(i));    
+  }
+  quality = old.quality;
+}
+
 NAN_MODULE_INIT(Solution::Init) {
   v8::Local<v8::FunctionTemplate> ctor = Nan::New<v8::FunctionTemplate>(Solution::New);
   constructor.Reset(ctor);

@@ -9,6 +9,9 @@ public:
   double quality = -1;
   std::vector<int> permutation;
 
+  Solution();
+  Solution(Solution&);
+
   static NAN_MODULE_INIT(Init);
   static NAN_METHOD(New);
   int Add(int);

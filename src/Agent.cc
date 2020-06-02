@@ -88,11 +88,11 @@ NAN_METHOD(Agent::AddGlobalSolution) {
     return Nan::ThrowError(Nan::New("Agent::AddGlobalSolution - expected argument to be instance of Solution").ToLocalChecked());
   }
 
-  Solution* newSol = Nan::ObjectWrap::Unwrap<Solution>(info[0]->ToObject());
-  if (newSol->quality <= 0){
+  Solution* inSol = Nan::ObjectWrap::Unwrap<Solution>(info[0]->ToObject());
+  if (inSol->quality <= 0){
     return Nan::ThrowError(Nan::New("Agent::AddGlobalSolution - Solution must have a quality assigned").ToLocalChecked());
   }
-  if (newSol->GetLength() != self->machines.size()){
+  if (inSol->GetLength() != self->machines.size()){
     return Nan::ThrowError(Nan::New("Agent::AddGlobalSolution - Solution must have correct length").ToLocalChecked());
   }
 
@@ -104,10 +104,13 @@ NAN_METHOD(Agent::AddGlobalSolution) {
   }
   #endif // DEBUG_OUTPUT
 
+  // copy the incoming solution (js shouldn't keep a direct reference) 
+  Solution* newSol = new Solution(*inSol);
+  // add the copy to the population
   bool added = self->UpdateGlobalPopulation(*newSol);
 
   #ifdef DEBUG_OUTPUT
-  printf("updating global population with new solution %s \n", newSol->ToString().c_str());
+  printf("updating global population with new solution %s \n", inSol->ToString().c_str());
   printf("new globalBestSolutions: \n");
   for (unsigned int k = 0; k < self->globalBestSolutions.size(); k++){
     printf("%i %s \n", k, self->globalBestSolutions.at(k)->ToString().c_str());
