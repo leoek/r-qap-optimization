@@ -84,6 +84,7 @@
   "dependencies": {
     "@babel/runtime": "^7.4.3",
     "bindings": "^1.5.0",
+    "cli-progress": "^3.8.2",
     "lodash": "^4.17.13",
     "nan": "^2.14.0"
   },

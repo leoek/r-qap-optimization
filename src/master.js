@@ -1,8 +1,10 @@
 import cluster from "cluster";
+
+import cliProgress from "cli-progress";
+
 import { getPerformaceTools, objectValues } from "./helpers";
-import { MESSAGE_TYPE } from "./config";
+import config, { MESSAGE_TYPE } from "./config";
 import { broadcast, newMessage } from "./lib/messaging";
-import { create } from "domain";
 
 const { performance } = getPerformaceTools();
 
@@ -20,6 +22,19 @@ const main = async ({ logger, workerCount = 1, solutionCountTarget }) => {
   // This will contain the best solution (this is a native instance)
   let best = null;
   let createdSolutions = 0;
+
+  // progress bar
+  const showProgressBar = config.logging.progressbar;
+  const progressBar = showProgressBar
+    ? new cliProgress.SingleBar(
+        {
+          clearOnComplete: false,
+          format:
+            "progress [{bar}] {percentage}% | ETA: {eta_formatted} ({eta}s) | {value}/{total}"
+        },
+        cliProgress.Presets.shades_classic
+      )
+    : null;
 
   // Will be called if all workers exited.
   let executionDoneCallback = () => undefined;
@@ -43,6 +58,7 @@ const main = async ({ logger, workerCount = 1, solutionCountTarget }) => {
       createdWorkerSolutions[msg.payload.workerId] =
         msg.payload.createdSolutions;
       createdSolutions = getCreatedSolutions(createdWorkerSolutions);
+      showProgressBar && progressBar.update(createdSolutions);
       if (solutionCountTarget && createdSolutions > solutionCountTarget) {
         broadcast(newMessage(MESSAGE_TYPE.STOP_SOLUTION_CREATION));
       }
@@ -62,6 +78,8 @@ const main = async ({ logger, workerCount = 1, solutionCountTarget }) => {
       broadcast(newMessage(MESSAGE_TYPE.NEW_SOLUTION, msg.payload));
     }
   };
+
+  showProgressBar && progressBar.start(solutionCountTarget, 0);
 
   const start = performance.now();
   for (let i = 0; i < workerCount; i++) {
@@ -87,6 +105,7 @@ const main = async ({ logger, workerCount = 1, solutionCountTarget }) => {
   logger.info("MASTER", "execution promise resolved");
 
   const end = performance.now();
+  showProgressBar && progressBar.stop();
 
   // Reuslt Output
   const solved = true;

@@ -2,7 +2,7 @@ export const getParametersFromArgs = () => {
   const parameters = {
     instanceName: "default",
     agents: 10,
-    solutionCountTarget: 10000
+    solutionCountTarget: 100000
   };
   process.argv.forEach((val, i) => {
     // 0 and 1 are node and the js filename
