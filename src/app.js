@@ -1,6 +1,7 @@
 import cluster from "cluster";
 import getParametersFromArgs from "./lib/parameterParser";
 import createQAPParser from "./lib/qapParser";
+import createRQAPParser from "./lib/rqapParser";
 
 import createLogger from "./services/logger";
 import config from "./config";
@@ -9,6 +10,7 @@ import masterMain from "./master";
 import workerMain from "./worker";
 
 const qapParser = createQAPParser();
+const rqapParser = createRQAPParser();
 
 const main = async () => {
   const logLevels =
@@ -32,8 +34,8 @@ const main = async () => {
    */
   let instance;
   try {
-    instance = await qapParser.fileToNativeInstance({
-      name: "nug12" || parameters.instanceName
+    instance = await rqapParser.fileToNativeInstance({
+      name: "default" || parameters.instanceName
     });
   } catch (error) {
     console.error("Could not create problem instance", error);

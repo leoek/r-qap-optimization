@@ -8,6 +8,11 @@
       "problemMatcher": []
     },
     {
+      "label": "yarn_build_debug",
+      "type": "npm",
+      "script": "build:debug"
+    },
+    {
       "label": "yarn_rebuild_debug",
       "type": "npm",
       "script": "rebuild:debug",

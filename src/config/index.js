@@ -4,8 +4,9 @@ export default {
   logging: {
     messages: false,
     levels: ["error", "warn", "info", "debug"],
-    master: false,
+    messages: false,
+    master: true,
     worker: false,
-    progressbar: true
+    progressbar: false
   }
 };

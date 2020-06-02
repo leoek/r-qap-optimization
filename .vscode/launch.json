@@ -7,12 +7,33 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Launch via Yarn",
+      "name": "yarn start",
       "runtimeExecutable": "yarn",
       "runtimeArgs": ["start"],
       "port": 9229,
       "skipFiles": ["<node_internals>/**"],
-      "autoAttachChildProcesses": true
+      "autoAttachChildProcesses": true,
+      "protocol": "inspector",
+      "outFiles": [
+        "${workspaceFolder}/dist/**/*.js.map",
+        "${workspaceFolder}/dist/**/*.js"
+      ]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "debug",
+      "program": "${workspaceFolder}/src/app.js",
+      "skipFiles": ["<node_internals>/**"],
+      "autoAttachChildProcesses": true,
+      "preLaunchTask": "yarn_build_debug",
+      "sourceMaps": true,
+      "outFiles": [
+        "${workspaceFolder}/dist/**/*.js.map",
+        "${workspaceFolder}/dist/**/*.js"
+      ],
+      "protocol": "inspector",
+      "runtimeArgs": ["--experimental-modules"]
     },
     {
       "type": "gdb",

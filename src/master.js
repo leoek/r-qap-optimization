@@ -47,10 +47,11 @@ const main = async ({ logger, workerCount = 1, solutionCountTarget }) => {
 
   // Receive Solutions from Workers
   const messageHandler = msg => {
-    logger.debug("received message", msg, {
-      solutionCountTarget,
-      createdSolutions
-    });
+    config.logging.messages &&
+      logger.debug("received message", msg, {
+        solutionCountTarget,
+        createdSolutions
+      });
     if (
       msg.type === MESSAGE_TYPE.CREATED_SOLUTIONS_COUNT ||
       MESSAGE_TYPE.NEW_SOLUTION
