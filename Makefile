@@ -8,6 +8,8 @@ docker-build:
 
 docker-publish: docker-build
 	docker push registry.leoek.tech/rqap:$(shell git rev-parse HEAD)
+	docker tag registry.leoek.tech/rqap:$(shell git rev-parse HEAD) registry.leoek.tech/rqap:current
+	docker push registry.leoek.tech/rqap:current
 
 docker-dev-build: 
 	docker build --tag rqapdev --target dev .

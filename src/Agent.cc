@@ -19,6 +19,7 @@ NAN_MODULE_INIT(Agent::Init) {
 
   Nan::SetPrototypeMethod(ctor, "addGlobalSolution", AddGlobalSolution);
   Nan::SetPrototypeMethod(ctor, "createSolution", _CreateSolution);
+  Nan::SetPrototypeMethod(ctor, "createAndReturnSolution", _CreateAndReturnSolution);
 
   target->Set(Nan::New("Agent").ToLocalChecked(), ctor->GetFunction());
 }
@@ -371,6 +372,12 @@ Solution* Agent::CreateSolution(){
 }
 
 NAN_METHOD(Agent::_CreateSolution) {
+  Agent * self = Nan::ObjectWrap::Unwrap<Agent>(info.This());
+  Solution* sol = self->CreateSolution();
+  delete sol;
+}
+
+NAN_METHOD(Agent::_CreateAndReturnSolution) {
   // unwrap this Agent
   Agent * self = Nan::ObjectWrap::Unwrap<Agent>(info.This());
   // create new solution (native)
