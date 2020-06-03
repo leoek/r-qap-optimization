@@ -20,6 +20,10 @@ RUN usermod -u $uid -o node \
 
 RUN mkdir -p /usr/src/app && \
     chown -R node:node /usr/src
+
+USER root
+RUN chown -R node:node /usr/src
+
 USER node
 WORKDIR /usr/src/app
 
@@ -33,9 +37,6 @@ COPY binding.gyp .
 COPY src ./src
 RUN yarn setup
 COPY problems ./problems
-USER root
-RUN chown -R node:node /usr/src
-USER node
 
 FROM base as prod
 
