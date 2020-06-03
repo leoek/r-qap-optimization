@@ -104,10 +104,9 @@ NAN_METHOD(Agent::AddGlobalSolution) {
   }
   #endif // DEBUG_OUTPUT
 
-  // copy the incoming solution (js shouldn't keep a direct reference) 
-  Solution* newSol = new Solution(*inSol);
-  // add the copy to the population
-  bool added = self->UpdateGlobalPopulation(*newSol);
+  // copy the incoming solution (js shouldn't keep a direct reference)
+  // Update Populations handles this now...
+  bool added = self->UpdateGlobalPopulation(*inSol);
 
   #ifdef DEBUG_OUTPUT
   printf("updating global population with new solution %s \n", inSol->ToString().c_str());
@@ -271,14 +270,6 @@ void PlaceSolAtPosition(std::vector<Solution*> &population, Solution* sol, int i
 
 bool UpdatePopulation(std::vector<Solution*> &population, int populationSize, Solution &inSol){
   /**
-   * To allow efficiently freeing memory of solutions which drop out of the population
-   * a copy of the solution is added to the population.
-   * - This ensures that different populations do not have references to the same solution.
-   * - Also it is assured that solutions which did not make it into the population can be
-   *   deleted
-   */
-  Solution* sol = new Solution(inSol);
-  /**
    * Iterate through the population starting with the worts solution in the population.
    * Usually the loop is exited after the first check, because the new solution is worse
    * than all solutions in the population.
@@ -286,7 +277,7 @@ bool UpdatePopulation(std::vector<Solution*> &population, int populationSize, So
   int i = population.size() - 1;
   while (i >= 0){
     // smaller quality is better
-    if ( sol->quality < population[i]->quality){
+    if ( inSol.quality < population[i]->quality){
       if (i + 1 < populationSize){
         PlaceSolAtPosition(population, population[i], i + 1);
       } else {
@@ -305,6 +296,14 @@ bool UpdatePopulation(std::vector<Solution*> &population, int populationSize, So
     }
   }
   if (i + 1 < populationSize){
+    /**
+     * To allow efficiently freeing memory of solutions which drop out of the population
+     * a copy of the solution is added to the population.
+     * - This ensures that different populations do not have references to the same solution.
+     * - Also it is assured that solutions which did not make it into the population can be
+     *   deleted
+     */
+    Solution* sol = new Solution(inSol);
     PlaceSolAtPosition(population, sol, i + 1);
     return true;
   }
