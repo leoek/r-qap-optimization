@@ -2,6 +2,11 @@ export const ERROR = {
   INVALID_INPUT_SYNTAX: "INVALID_INPUT_SYNTAX"
 };
 
+export const INSTANCE_TYPE = {
+  RQAP: "rqap",
+  QAP: "qap"
+};
+
 export const MESSAGE_TYPE = {
   NEW_SOLUTION: "NEW_SOLUTION",
   CREATED_SOLUTIONS_COUNT: "CREATED_SOLUTIONS_COUNT",

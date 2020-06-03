@@ -1,6 +1,7 @@
 export const getParametersFromArgs = () => {
   const parameters = {
-    instanceName: "default",
+    instanceName: "nug12",
+    instanceType: "qap",
     agents: 10,
     solutionCountTarget: 10000,
     n: 1
@@ -8,11 +9,15 @@ export const getParametersFromArgs = () => {
   process.argv.forEach((val, i) => {
     // 0 and 1 are node and the js filename
     if (i === 2) {
-      parameters.problemInstance = val;
+      parameters.instanceName = val;
     } else if (i === 3) {
-      parameters.agents = parseInt(val);
+      parameters.instanceType = val;
     } else if (i === 4) {
+      parameters.agents = parseInt(val);
+    } else if (i === 5) {
       parameters.solutionCountTarget = parseInt(val);
+    } else if (i === 6) {
+      parameters.n = parseInt(val);
     }
   });
   return parameters;

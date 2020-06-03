@@ -7,7 +7,7 @@ import createQAPParser from "./lib/qapParser";
 import createRQAPParser from "./lib/rqapParser";
 
 import createLogger from "./services/logger";
-import config from "./config";
+import config, { INSTANCE_TYPE } from "./config";
 
 import masterMain from "./master";
 import workerMain from "./worker";
@@ -25,6 +25,13 @@ const main = async () => {
   const logger = createLogger({ logLevels });
   const parameters = getParametersFromArgs();
   logger.info("Parameters", parameters);
+  const {
+    agents,
+    solutionCountTarget,
+    n,
+    instanceType,
+    instanceName
+  } = parameters;
 
   /**
    * @typedef nativeInstance
@@ -37,16 +44,16 @@ const main = async () => {
    * @type nativeInstance
    */
   let instance;
+  const parser = instanceType === INSTANCE_TYPE.QAP ? qapParser : rqapParser;
   try {
-    instance = await qapParser.fileToNativeInstance({
-      name: "nug12" || parameters.instanceName
+    instance = await parser.fileToNativeInstance({
+      name: instanceName
     });
   } catch (error) {
     console.error("Could not create problem instance", error);
     throw error;
   }
 
-  const { agents, solutionCountTarget, n } = parameters;
   const solutionCountTargetPerWorker = Math.ceil(solutionCountTarget / agents);
 
   if (cluster.isMaster) {
