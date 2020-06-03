@@ -46,7 +46,7 @@ const main = async () => {
     throw error;
   }
 
-  const { agents = 1, solutionCountTarget = 100, n = 100 } = parameters;
+  const { agents, solutionCountTarget, n } = parameters;
   const solutionCountTargetPerWorker = Math.ceil(solutionCountTarget / agents);
 
   if (cluster.isMaster) {

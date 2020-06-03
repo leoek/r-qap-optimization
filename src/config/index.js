@@ -5,8 +5,8 @@ export default {
     messages: false,
     levels: ["error", "warn", "info"],
     messages: false,
-    master: false,
-    worker: false,
-    progressbar: true
+    master: true,
+    worker: true,
+    progressbar: false
   }
 };

@@ -261,7 +261,7 @@ void Agent::Solve(Solution &sol){
  * There shouldn't be any solutions in here which might be interfered with by js!
  * It seems to cause issues during longer runs. (garbage collection?)
  */
-void PlaceSolAtPosition(std::vector<Solution*> &population, Solution * sol, int i){
+void PlaceSolAtPosition(std::vector<Solution*> &population, Solution* sol, int i){
   if (i < population.size()){
     population[i] = sol;
   } else {
@@ -269,20 +269,35 @@ void PlaceSolAtPosition(std::vector<Solution*> &population, Solution * sol, int 
   }
 }
 
-bool UpdatePopulation(std::vector<Solution*> &population, int populationSize, Solution &sol){
+bool UpdatePopulation(std::vector<Solution*> &population, int populationSize, Solution &inSol){
+  /**
+   * To allow efficiently freeing memory of solutions which drop out of the population
+   * a copy of the solution is added to the population.
+   * - This ensures that different populations do not have references to the same solution.
+   * - Also it is assured that solutions which did not make it into the population can be
+   *   deleted
+   */
+  Solution* sol = new Solution(inSol);
+  /**
+   * Iterate through the population starting with the worts solution in the population.
+   * Usually the loop is exited after the first check, because the new solution is worse
+   * than all solutions in the population.
+   */
   int i = population.size() - 1;
   while (i >= 0){
     // smaller quality is better
-    if ( sol.quality < population[i]->quality){
+    if ( sol->quality < population[i]->quality){
       if (i + 1 < populationSize){
         PlaceSolAtPosition(population, population[i], i + 1);
       } else {
         /**
-         * TODO UNSAFE
-         * not sure yet whether it is safe to delete that solution,
-         * as it may be used in the node thread.
+         * Solutions are copied into the population.
+         * --> A Solution is only references from one populaiton, even
+         * if the same (quality + permutaion) solution is part of
+         * multiple populations. (a copy is made)
+         * Therefore it is safe to free the memory here.
          */
-        //delete population[i];
+        delete (population[i]);
       }
       i--;
     } else {
@@ -290,7 +305,7 @@ bool UpdatePopulation(std::vector<Solution*> &population, int populationSize, So
     }
   }
   if (i + 1 < populationSize){
-    PlaceSolAtPosition(population, &sol, i + 1);
+    PlaceSolAtPosition(population, sol, i + 1);
     return true;
   }
   return false;
@@ -367,5 +382,9 @@ NAN_METHOD(Agent::_CreateSolution) {
    * js stuff
    */
   Local<Object> _sol = CreateWrappedSolution(*sol);
+  /**
+   * Solutions are copied into the population if they make it.
+   */
+  delete sol;
   info.GetReturnValue().Set(_sol);
 }
