@@ -1,6 +1,6 @@
 #FROM node:12.10.0-stretch
 #FROM node:6.7.0
-FROM node:8.16.1-jessie
+FROM node:8.16.1-jessie as base
 
 ARG uid=1000
 ARG gid=1000
@@ -37,5 +37,14 @@ USER root
 RUN chown -R node:node /usr/src
 USER node
 
+FROM base as prod
+
+RUN yarn build
+ENTRYPOINT [ "yarn" ]
+CMD [ "serve:node" ]
+
+FROM base as dev
+
+RUN yarn build:debug
 ENTRYPOINT [ "yarn" ]
 CMD [ "start" ]
