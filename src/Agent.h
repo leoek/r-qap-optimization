@@ -50,8 +50,10 @@ public:
   static NAN_METHOD(New);
   static NAN_METHOD(AddGlobalSolution);
   Solution* CreateSolution();
+  void CreateSolutions(int);
   static NAN_METHOD(_CreateSolution);
   static NAN_METHOD(_CreateAndReturnSolution);
+  static NAN_METHOD(_CreateSolutions);
 
   static NAN_GETTER(HandleGetters);
   static NAN_SETTER(HandleSetters);

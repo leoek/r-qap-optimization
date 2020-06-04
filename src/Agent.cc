@@ -20,6 +20,7 @@ NAN_MODULE_INIT(Agent::Init) {
   Nan::SetPrototypeMethod(ctor, "addGlobalSolution", AddGlobalSolution);
   Nan::SetPrototypeMethod(ctor, "createSolution", _CreateSolution);
   Nan::SetPrototypeMethod(ctor, "createAndReturnSolution", _CreateAndReturnSolution);
+  Nan::SetPrototypeMethod(ctor, "createSolutions", _CreateSolutions);
 
   target->Set(Nan::New("Agent").ToLocalChecked(), ctor->GetFunction());
 }
@@ -371,6 +372,16 @@ Solution* Agent::CreateSolution(){
   return sol;
 }
 
+void Agent::CreateSolutions(int n){
+  for (int i = 0; i < n; i++){
+    Solution* sol = new Solution();
+    Solve(*sol);
+    RateSolution(*sol);
+    HandleNewSolution(*sol);
+    delete sol;
+  }
+}
+
 NAN_METHOD(Agent::_CreateSolution) {
   Agent * self = Nan::ObjectWrap::Unwrap<Agent>(info.This());
   Solution* sol = self->CreateSolution();
@@ -393,4 +404,13 @@ NAN_METHOD(Agent::_CreateAndReturnSolution) {
    */
   delete sol;
   info.GetReturnValue().Set(_sol);
+}
+
+NAN_METHOD(Agent::_CreateSolutions) {
+  Agent * self = Nan::ObjectWrap::Unwrap<Agent>(info.This());
+  int n = 1;
+  if(info[0]->IsNumber()) {
+    n = info[0]->NumberValue();
+  }
+  self->CreateSolutions(n);
 }

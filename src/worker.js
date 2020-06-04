@@ -89,12 +89,9 @@ const workerMain = async ({ logger, instance, solutionCountMax = 0 }) => {
   while (!shouldStop && solutionCount < solutionCountMax) {
     // Worker needs time to recv messages and callbacks before executing native code again...
     await sleep(1);
-    let i = 0;
-    while (i++ < 100) {
-      agent.createSolution();
-      solutionCount++;
-      reportCreatedSolutionsCount(solutionCount);
-    }
+    agent.createSolutions(100);
+    solutionCount += 100;
+    reportCreatedSolutionsCount(solutionCount);
   }
   reportCreatedSolutionsCount(solutionCount);
   process.exit(0);
