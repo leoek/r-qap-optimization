@@ -7,6 +7,6 @@ export default {
     messages: false,
     master: true,
     worker: true,
-    progressbar: false
+    progressbar: true
   }
 };

@@ -5,6 +5,7 @@ import cliProgress from "cli-progress";
 import { getPerformaceTools, objectValues } from "./helpers";
 import config, { MESSAGE_TYPE } from "./config";
 import { broadcast, newMessage } from "./lib/messaging";
+import { inspect } from "util";
 
 const { performance } = getPerformaceTools();
 
@@ -137,13 +138,19 @@ const main = async ({
   const runlength = createdSolutions;
   const seed = null;
   const bestQuality = best ? best.quality : null;
-  logger.log(`Human readable result: \n`, {
-    solved,
-    runtime: `${runtime} ms`,
-    createdSolutions,
-    bestQuality,
-    best
-  });
+  logger.log(
+    `Human readable result: \n`,
+    inspect(
+      {
+        solved,
+        runtime: `${runtime} ms`,
+        createdSolutions,
+        bestQuality,
+        best
+      },
+      { showHidden: false, depth: null }
+    )
+  );
   logger.log(
     `Result for ParamILS: ${solved}, ${runtime}, ${runlength}, ${bestQuality}, ${seed}`
   );

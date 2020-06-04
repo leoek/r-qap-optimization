@@ -12,11 +12,8 @@ NAN_MODULE_INIT(Agent::Init) {
   ctor->SetClassName(Nan::New("Agent").ToLocalChecked());
 
   // link our getters and setter to the object property
-  Nan::SetAccessor(ctor->InstanceTemplate(), Nan::New("x").ToLocalChecked(), Agent::HandleGetters, Agent::HandleSetters);
-  Nan::SetAccessor(ctor->InstanceTemplate(), Nan::New("y").ToLocalChecked(), Agent::HandleGetters, Agent::HandleSetters);
-  Nan::SetAccessor(ctor->InstanceTemplate(), Nan::New("z").ToLocalChecked(), Agent::HandleGetters, Agent::HandleSetters);
-  Nan::SetAccessor(ctor->InstanceTemplate(), Nan::New("intarray").ToLocalChecked(), Agent::HandleGetters, Agent::HandleSetters);
 
+  // ling functions
   Nan::SetPrototypeMethod(ctor, "addGlobalSolution", AddGlobalSolution);
   Nan::SetPrototypeMethod(ctor, "createSolution", _CreateSolution);
   Nan::SetPrototypeMethod(ctor, "createAndReturnSolution", _CreateAndReturnSolution);
@@ -124,42 +121,11 @@ NAN_GETTER(Agent::HandleGetters) {
   Agent* self = Nan::ObjectWrap::Unwrap<Agent>(info.This());
 
   std::string propertyName = std::string(*Nan::Utf8String(property));
-  if (propertyName == "x") {
-    info.GetReturnValue().Set(self->x);
-  } else if (propertyName == "y") {
-    info.GetReturnValue().Set(self->y);
-  } else if (propertyName == "z") {
-    info.GetReturnValue().Set(self->z);
-  } else if (propertyName == "intarray") {
-    v8::Local<v8::Array> jsArray = Nan::New<v8::Array>(self->intarray.size());
-    for (size_t i = 0; i < self->intarray.size(); i++)
-    {
-        printf("value %lu %d", i, self->intarray[i]);
-        Nan::Set(jsArray, i, Nan::New<Number>(self->intarray[i]));
-    }
-    info.GetReturnValue().Set(jsArray);
-  } else {
-    info.GetReturnValue().Set(Nan::Undefined());
-  }
+  info.GetReturnValue().Set(Nan::Undefined());
 }
 
 NAN_SETTER(Agent::HandleSetters) {
   Agent* self = Nan::ObjectWrap::Unwrap<Agent>(info.This());
-
-  if(!value->IsNumber()) {
-    return Nan::ThrowError(Nan::New("expected value to be a number").ToLocalChecked());
-  }
-
-  std::string propertyName = std::string(*Nan::Utf8String(property));
-  if (propertyName == "x") {
-    self->x = value->NumberValue();
-  } else if (propertyName == "y") {
-    self->y = value->NumberValue();
-  } else if (propertyName == "z") {
-    self->z = value->NumberValue();
-  } else if (propertyName == "intarray"){
-
-  }
 }
 
 int Agent::GetNextValue(){
@@ -192,21 +158,21 @@ int Agent::GetNextValue(){
         if (currentMachineIndex >= srcSol->permutation.size()){
           printf("selected invalid srcSol from global best %i / %i, srcSol: %s \n", currentMachineIndex, srcSol->permutation.size(), srcSol->ToString().c_str());
         } else {
-          possibleIndex = srcSol->permutation.at(currentMachineIndex);
+          possibleIndex = srcSol->permutation.at(currentMachineIndex).at(0);
         }
       } else if (populationSelector < rndWeight + gBestPopulationWeight + pBestPopulationWeight && personalBestSolutions.size() >= 1){
         Solution * srcSol = selector(personalBestSolutions);
         if (currentMachineIndex >= srcSol->permutation.size()){
           printf("selected invalid srcSol from local best %i / %i, srcSol: %s \n", currentMachineIndex, srcSol->permutation.size(), srcSol->ToString().c_str());
         } else {
-          possibleIndex = srcSol->permutation.at(currentMachineIndex);
+          possibleIndex = srcSol->permutation.at(currentMachineIndex).at(0);
         }
       }
       // Check whether there is a possible index which was copied from a previous Solution
-      if (possibleIndex >= 0 && possibleIndex < factories.size()){
+      if (possibleIndex >= 0){
         // Check whether the machine fits into that factory (get the factory at that index)
         // select that index if it is feasible
-        if (possibleIndex >= 0 && factories.at(possibleIndex)->GetUnusedCapacity() >= machines.at(currentMachineIndex)->size){
+        if (factories.at(possibleIndex)->GetUnusedCapacity() >= machines.at(currentMachineIndex)->size){
           selected = possibleIndex;
         }
       }
@@ -231,7 +197,7 @@ int Agent::RateSolution(Solution &sol){
   for (unsigned int m_i = 0; m_i < machines.size(); m_i++){
     for (unsigned int m_k = 0; m_k < machines.size(); m_k++){
       int flow = flowMatrix->GetValue(m_i, m_k);
-      int distance = distanceMatrix->GetValue(sol.permutation[m_i], sol.permutation[m_k]);
+      int distance = distanceMatrix->GetValue(sol.permutation[m_i].at(0), sol.permutation[m_k].at(0));
       flowDistanceSum += flow * distance;
     }
   }
@@ -320,25 +286,6 @@ bool Agent::UpdateGlobalPopulation(Solution &sol){
   return UpdatePopulation(globalBestSolutions, maxGlobalBest, sol);
 }
 
-Local<Object> CreateWrappedSolution(Solution &sol){
-  // Create new wrapped solution instance _sol
-  v8::Local<v8::Array> jsArray = Nan::New<v8::Array>(sol.permutation.size());
-  for (size_t i = 0; i < sol.permutation.size(); i++)
-  {
-      Nan::Set(jsArray, i, Nan::New<Number>(sol.permutation[i]));
-  }
-
-  const int argc = 2;
-  v8::Local<v8::Value> argv[argc] = {
-    jsArray,
-    Nan::New(sol.quality)
-  };
-
-  Local<Function> constructorFunc = Nan::New(Solution::constructor)->GetFunction();
-  Local<Object> _sol = Nan::NewInstance(constructorFunc, argc, argv).ToLocalChecked();
-  return _sol;
-}
-
 void Agent::ReportNewBestSolution(Solution &sol){
   // Create new wrapped solution instance _sol
   Local<Object> _sol = CreateWrappedSolution(sol);
@@ -374,10 +321,7 @@ Solution* Agent::CreateSolution(){
 
 void Agent::CreateSolutions(int n){
   for (int i = 0; i < n; i++){
-    Solution* sol = new Solution();
-    Solve(*sol);
-    RateSolution(*sol);
-    HandleNewSolution(*sol);
+    Solution* sol = CreateSolution();
     delete sol;
   }
 }

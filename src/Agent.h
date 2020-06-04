@@ -11,6 +11,7 @@
 #include "rndSelector.cc"
 #include "helperFunctions.h"
 #include "Matrix.h"
+#include "WrappingHelpers.h"
 
 class Agent : public Nan::ObjectWrap {
 public:

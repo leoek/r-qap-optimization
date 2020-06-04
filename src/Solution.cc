@@ -46,17 +46,11 @@ NAN_METHOD(Solution::New) {
   sol->Wrap(info.Holder());
 
   // initialize it's values
-  vector<int> intarray;
+  vector<vector<int>> permutationArray;
   if(info[0]->IsArray()) {
-    Local<Array> jsArray = Local<Array>::Cast(info[0]);
-    for (unsigned int i = 0; i < jsArray->Length(); i++)
-    {
-      Handle<Value> val = jsArray->Get(i);
-      int numVal = val->NumberValue();
-      intarray.push_back(numVal);
-    }
+    permutationArray = UnWrapPermutation(Local<Array>::Cast(info[0]));
   }
-  sol->permutation = intarray;
+  sol->permutation = permutationArray;
 
   if(info[1]->IsNumber()) {
     sol->quality = info[1]->NumberValue();
@@ -80,12 +74,15 @@ NAN_METHOD(Solution::_GetLength) {
 int Solution::Add(int value){
   return Add(value, True);
 }
+
 int Solution::Add(int value, bool check){
   /**
    * #TODO check whether this is possible if check=true
    * not sure whether this is useful here yet
    **/
-  permutation.push_back(value);
+  vector<int> inner;
+  inner.push_back(value);
+  permutation.push_back(inner);
   return permutation.size();
 }
 
@@ -108,8 +105,12 @@ NAN_METHOD(Solution::_Add) {
 
 std::string Solution::ToString(){
   std::string result = string_format("quality: %f; length: %i; permutation: ", quality, GetLength());
-  for (unsigned int k = 0; k < permutation.size(); k++){
-    result += string_format(" %d ", permutation.at(k));
+  for (unsigned int i = 0; i < permutation.size(); i++){
+    result += " ";
+    for (unsigned int k = 0; k < permutation.at(i).size(); k++){
+      result += string_format("%d,", permutation[i][k]);
+    }
+    result += " ";
   }
   return result;
 }
@@ -121,12 +122,7 @@ NAN_GETTER(Solution::HandleGetters) {
   if (propertyName == "quality") {
     info.GetReturnValue().Set(self->quality);
   } else if (propertyName == "permutation"){
-    v8::Local<v8::Array> jsArray = Nan::New<v8::Array>(self->permutation.size());
-    for (size_t i = 0; i < self->permutation.size(); i++)
-    {
-        Nan::Set(jsArray, i, Nan::New<Number>(self->permutation[i]));
-    }
-    info.GetReturnValue().Set(jsArray);
+    info.GetReturnValue().Set(WrapPermutation(self->permutation));
   }
 }
 
@@ -141,14 +137,19 @@ NAN_SETTER(Solution::HandleSetters) {
   if (propertyName == "quality") {
     self->quality = value->NumberValue();
   } else if (propertyName == "permutation"){
-    Local<Array> jsArray = Local<Array>::Cast(value);
-    vector<int> intarray;
-    for (unsigned int i = 0; i < jsArray->Length(); i++)
-    {
-      Handle<Value> val = jsArray->Get(i);
-      int numVal = val->IntegerValue();
-      intarray.push_back(numVal);
-    }
-    self->permutation = intarray;
+    self->permutation = UnWrapPermutation(Local<Array>::Cast(value));
   }
+}
+
+Local<Object> CreateWrappedSolution(Solution& sol){
+  // Create new wrapped solution instance _sol
+  const int argc = 2;
+  v8::Local<v8::Value> argv[argc] = {
+    WrapPermutation(sol.permutation),
+    Nan::New(sol.quality)
+  };
+
+  Local<Function> constructorFunc = Nan::New(Solution::constructor)->GetFunction();
+  Local<Object> _sol = Nan::NewInstance(constructorFunc, argc, argv).ToLocalChecked();
+  return _sol;
 }

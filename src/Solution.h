@@ -3,11 +3,12 @@
 
 #include <nan.h>
 #include "stringFormat.cc"
+#include "WrappingHelpers.h"
 
 class Solution : public Nan::ObjectWrap {
 public:
   double quality = -1;
-  std::vector<int> permutation;
+  std::vector<std::vector<int>> permutation;
 
   Solution();
   Solution(Solution&);
@@ -27,5 +28,7 @@ public:
 
   static Nan::Persistent<v8::FunctionTemplate> constructor;
 };
+
+v8::Local<v8::Object> CreateWrappedSolution(Solution&);
 
 #endif  // AGENT_ADDON_SOLUTION_H_

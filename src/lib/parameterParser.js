@@ -2,7 +2,7 @@ export const getParametersFromArgs = () => {
   const parameters = {
     instanceName: "nug12",
     instanceType: "qap",
-    agents: 10,
+    agents: 1,
     solutionCountTarget: 10000,
     n: 1
   };
