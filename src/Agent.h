@@ -26,14 +26,14 @@ public:
   Matrix * changeOverMatrix;
   Matrix * distanceMatrix; 
 
-  int maxGlobalBest = 3;
+  int maxGlobalBest = 10;
   std::vector<Solution*> globalBestSolutions;
-  int maxPersonalBest = 3;
+  int maxPersonalBest = 10;
   std::vector<Solution*> personalBestSolutions;
   int currentMachineIndex = 0;
 
-  int pBestPopulationWeight = 1;
-  int gBestPopulationWeight = 1;
+  int pBestPopulationWeight = 10;
+  int gBestPopulationWeight = 10;
   int rndWeight = 1;
 
   Nan::Callback* newBestSolutionCallback;

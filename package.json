@@ -54,8 +54,8 @@
     "rebuild": "yarn js:build && yarn native:rebuild",
     "build:debug": "yarn js:build:debug && yarn native:build:debug",
     "rebuild:debug": "yarn js:build:debug && yarn native:rebuild:debug",
-    "start": "nodemon -e js,ts,cc,h --watch src --exec \"yarn build:debug && yarn watch:debug\"",
-    "js:start": "nodemon -e js,ts --watch src --exec \"yarn js:build:debug && yarn watch:debug\"",
+    "start": "nodemon -e js,ts,cc,h --watch src --exec \"yarn build:debug && yarn serve:debug\"",
+    "js:start": "nodemon -e js,ts --watch src --exec \"yarn js:build:debug && yarn serve:debug\"",
     "native:start": "nodemon -e cc,h --watch src --exec \"yarn native:build:debug\""
   },
   "devDependencies": {
