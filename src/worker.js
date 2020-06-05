@@ -4,6 +4,7 @@ import cluster from "cluster";
 import { sleep } from "./helpers";
 import { newMessage } from "./lib/messaging";
 import config, { MESSAGE_TYPE } from "./config";
+import { inspect } from "util";
 
 const agentaddon = bindings("agentaddon");
 
@@ -63,7 +64,10 @@ const workerMain = async ({ logger, instance, solutionCountMax = 0 }) => {
     changeOverMatrix,
     distanceMatrix,
     (err, solution) => {
-      logger.debug("native new best solution callback", { err, solution });
+      logger.debug(
+        "native new best solution callback",
+        inspect({ err, solution }, false, null)
+      );
       reportNewSolution(solution, solutionCount);
     }
   );

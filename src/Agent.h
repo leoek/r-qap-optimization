@@ -20,6 +20,7 @@ public:
   double z;
   std::vector<int> intarray;
 
+  int maxMachineRedundancy = 1;
   std::vector<Machine*> machines;
   std::vector<Factory*> factories;
   Matrix * flowMatrix;
@@ -40,9 +41,12 @@ public:
   void ReportNewBestSolution(Solution&);
   bool HandleNewSolution(Solution&);
 
+  int GetNextValue(int, std::vector<int>);
   int GetNextValue();
   void ResetFactories();
   void Solve(Solution&);
+
+  int GetFlowDistanceSum(std::vector<std::vector<int>>);
   int RateSolution(Solution&);
   bool UpdatePersonalPopulation(Solution&);
   bool UpdateGlobalPopulation(Solution&);

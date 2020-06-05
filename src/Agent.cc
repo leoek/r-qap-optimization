@@ -67,6 +67,9 @@ NAN_METHOD(Agent::New) {
   {
     Handle<Value> val = machineJsArray->Get(i);
     Machine * machineVal = Nan::ObjectWrap::Unwrap<Machine>(val->ToObject());
+    if (machineVal->redundancy > self->maxMachineRedundancy){
+      self->maxMachineRedundancy = machineVal->redundancy;
+    }
     machineArray.push_back(machineVal);
   }
   self->machines = machineArray;
@@ -88,7 +91,7 @@ NAN_METHOD(Agent::AddGlobalSolution) {
   }
 
   Solution* inSol = Nan::ObjectWrap::Unwrap<Solution>(info[0]->ToObject());
-  if (inSol->quality <= 0){
+  if (inSol->quality < 0){
     return Nan::ThrowError(Nan::New("Agent::AddGlobalSolution - Solution must have a quality assigned").ToLocalChecked());
   }
   if (inSol->GetLength() != self->machines.size()){
@@ -128,7 +131,7 @@ NAN_SETTER(Agent::HandleSetters) {
   Agent* self = Nan::ObjectWrap::Unwrap<Agent>(info.This());
 }
 
-int Agent::GetNextValue(){
+int Agent::GetNextValue(int level, std::vector<int> prevSelections){
   Machine * currentMachine = machines.at(currentMachineIndex);
   // #PERFORMANCE
   // check the capacity requirement after selecting randomly
@@ -136,9 +139,13 @@ int Agent::GetNextValue(){
   // and select randomly again
   vector<int> availableFactories;
   for (unsigned int i = 0; i < factories.size(); i++){
-    if (factories.at(i)->GetUnusedCapacity() >= currentMachine->size){
+    if (factories.at(i)->GetUnusedCapacity() >= currentMachine->size
+      && !vectorContains(prevSelections, i)){
       availableFactories.push_back(i);
     }
+  }
+  if(availableFactories.size() == 0){
+    return -1;
   }
 
   int selected = -1;
@@ -155,25 +162,20 @@ int Agent::GetNextValue(){
       int possibleIndex = -1;
       if (populationSelector < rndWeight + gBestPopulationWeight && globalBestSolutions.size() >= 1){
         Solution * srcSol = selector(globalBestSolutions);
-        if (currentMachineIndex >= srcSol->permutation.size()){
-          printf("selected invalid srcSol from global best %i / %i, srcSol: %s \n", currentMachineIndex, srcSol->permutation.size(), srcSol->ToString().c_str());
-        } else {
-          possibleIndex = srcSol->permutation.at(currentMachineIndex).at(0);
-        }
+        possibleIndex = srcSol->permutation.at(currentMachineIndex).at(level);
       } else if (populationSelector < rndWeight + gBestPopulationWeight + pBestPopulationWeight && personalBestSolutions.size() >= 1){
         Solution * srcSol = selector(personalBestSolutions);
-        if (currentMachineIndex >= srcSol->permutation.size()){
-          printf("selected invalid srcSol from local best %i / %i, srcSol: %s \n", currentMachineIndex, srcSol->permutation.size(), srcSol->ToString().c_str());
-        } else {
-          possibleIndex = srcSol->permutation.at(currentMachineIndex).at(0);
-        }
+        possibleIndex = srcSol->permutation.at(currentMachineIndex).at(level);
       }
       // Check whether there is a possible index which was copied from a previous Solution
       if (possibleIndex >= 0){
         // Check whether the machine fits into that factory (get the factory at that index)
-        // select that index if it is feasible
         if (factories.at(possibleIndex)->GetUnusedCapacity() >= machines.at(currentMachineIndex)->size){
-          selected = possibleIndex;
+          // Check that the (redundant) machine is not placed in the same factory
+          if (!vectorContains(prevSelections, possibleIndex)){
+            // select that index, it is feasible           
+            selected = possibleIndex;
+          }
         }
       }
     }
@@ -183,6 +185,11 @@ int Agent::GetNextValue(){
   return selected;
 }
 
+int Agent::GetNextValue(){
+  std::vector<int> empty;
+  return GetNextValue(0, empty);
+}
+
 void Agent::ResetFactories(){
   vector<Factory*> newFactories;
   for (unsigned int i = 0; i < factories.size(); i++){
@@ -190,19 +197,23 @@ void Agent::ResetFactories(){
   }
 }
 
-int Agent::RateSolution(Solution &sol){
-  // Rate the generated solution
-  // #TODO rate all criteria (currently only flow*distance)
+int Agent::GetFlowDistanceSum(std::vector<std::vector<int>> permutation){
   int flowDistanceSum = 0;
   for (unsigned int m_i = 0; m_i < machines.size(); m_i++){
     for (unsigned int m_k = 0; m_k < machines.size(); m_k++){
       int flow = flowMatrix->GetValue(m_i, m_k);
-      int distance = distanceMatrix->GetValue(sol.permutation[m_i].at(0), sol.permutation[m_k].at(0));
+      int distance = distanceMatrix->GetValue(permutation[m_i].at(0), permutation[m_k].at(0));
       flowDistanceSum += flow * distance;
     }
   }
-  sol.quality = flowDistanceSum;
   return flowDistanceSum;
+}
+
+int Agent::RateSolution(Solution &sol){
+  // Rate the generated solution
+  // #TODO rate all criteria (currently only flow*distance)
+  sol.quality = GetFlowDistanceSum(sol.permutation);
+  return sol.quality;
 }
 
 void Agent::Solve(Solution &sol){
@@ -217,11 +228,36 @@ void Agent::Solve(Solution &sol){
     printf("%i %s \n", k, personalBestSolutions.at(k)->ToString().c_str());
   }
   #endif // DEBUG_OUTPUT
+
+  int rLevel = 0;
+  // Creates the first permutation (which selects a factory for each machine)
   currentMachineIndex = 0;
   while(currentMachineIndex < machines.size()){
-    sol.Add(GetNextValue());
+    sol.Set(currentMachineIndex, rLevel, GetNextValue());
     currentMachineIndex++;
   }
+  /**
+   * Creates the additional "permutations" to satisfy the redundancy requirement
+   * for each machine. (For normal QAP instances this is not run since redundacy
+   * and capacity are always 1 --> One Machine per Factory for QAP)
+   */
+  rLevel++;
+  while(rLevel < maxMachineRedundancy){
+    currentMachineIndex = 0;
+    while(currentMachineIndex < machines.size()){
+      if (rLevel < machines[currentMachineIndex]->redundancy){
+        int nextVal = GetNextValue(rLevel, sol.permutation[currentMachineIndex]);
+        int prevVal = sol.permutation[currentMachineIndex][rLevel - 1];
+        sol.Set(currentMachineIndex, rLevel, nextVal);
+      }
+      currentMachineIndex++;
+    }
+    rLevel++;
+  }
+  /**
+   * The created solution might not justify the redundancy requirements if there
+   * wasn't any capacity left to fulfil the requirements.
+   */
 }
 
 /**

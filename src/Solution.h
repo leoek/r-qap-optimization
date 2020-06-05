@@ -15,8 +15,9 @@ public:
 
   static NAN_MODULE_INIT(Init);
   static NAN_METHOD(New);
+  bool Set(int, int, int);
+  void Add(int, int);
   int Add(int);
-  int Add(int, bool);
   static NAN_METHOD(_Add);
 
   int GetLength();

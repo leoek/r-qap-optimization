@@ -71,44 +71,58 @@ NAN_METHOD(Solution::_GetLength) {
   info.GetReturnValue().Set(size);
 }
 
-int Solution::Add(int value){
-  return Add(value, True);
+bool Solution::Set(int machineIndex, int level, int value){
+  if (machineIndex == permutation.size()){
+    Add(value);
+    return true;
+  } else if (machineIndex < permutation.size()){
+    if (level == permutation[machineIndex].size()){
+      Add(machineIndex, value);
+      return true;
+    } else if (level < permutation[machineIndex].size()){
+      permutation[machineIndex][level] = value;
+      return true;
+    }
+  }
+  printf("Invalid Solution: this shouldn't happen! machineIndex: %i, Level: %i \nSolution: %s\n", machineIndex, level, ToString().c_str());
+  return false;
 }
 
-int Solution::Add(int value, bool check){
-  /**
-   * #TODO check whether this is possible if check=true
-   * not sure whether this is useful here yet
-   **/
+int Solution::Add(int value){
   vector<int> inner;
   inner.push_back(value);
   permutation.push_back(inner);
   return permutation.size();
 }
 
+void Solution::Add(int machineIndex, int value){
+  permutation.at(machineIndex).push_back(value);
+}
+
 NAN_METHOD(Solution::_Add) {
   // unwrap this Solution
   Solution * self = Nan::ObjectWrap::Unwrap<Solution>(info.This());
-  bool check = true;
 
   if(!info[0]->IsNumber()) {
     return Nan::ThrowError(Nan::New("Solution::Add - expected argument 0 to be an integer").ToLocalChecked());
   }
+  /*
+  bool check = true;
   if(info[1]->IsBoolean()) {
     check = info[1]->BooleanValue();
   }
-   
+  */
   int newVal = info[0]->IntegerValue();
-  int size = (*self).Add(newVal, check);
+  int size = (*self).Add(newVal);
   info.GetReturnValue().Set(size);
 }
 
 std::string Solution::ToString(){
   std::string result = string_format("quality: %f; length: %i; permutation: ", quality, GetLength());
   for (unsigned int i = 0; i < permutation.size(); i++){
-    result += " ";
+    result += string_format(" m%i:", i);
     for (unsigned int k = 0; k < permutation.at(i).size(); k++){
-      result += string_format("%d,", permutation[i][k]);
+      result += string_format("%i,", permutation[i][k]);
     }
     result += " ";
   }
