@@ -47,6 +47,7 @@ public:
   void Solve(Solution&);
 
   int GetFlowDistanceSum(std::vector<std::vector<int>>);
+  double GetFailureRiskSum(std::vector<std::vector<int>>);
   int RateSolution(Solution&);
   bool UpdatePersonalPopulation(Solution&);
   bool UpdateGlobalPopulation(Solution&);

@@ -30,10 +30,10 @@ const modes = objectValues(PARSE_MODE);
  */
 
 /**
-  * 
-  * @param {string} content File content
-  * @returns {qapContent}
-  */
+ *
+ * @param {string} content File content
+ * @returns {qapContent}
+ */
 
 const parseRQAPContent = content => {
   const lines = content.split("\n");
@@ -57,7 +57,7 @@ const parseRQAPContent = content => {
         const id = match[1];
         factories[id] = {
           id: parseInt(id),
-          probability: parseInt(match[2]), // Ausfallwahrscheinlichkeit
+          probability: parseFloat(match[2]), // Ausfallwahrscheinlichkeit
           capacity: parseInt(match[3]), //Kapazität
           x: parseInt(match[4]),
           y: parseInt(match[5])

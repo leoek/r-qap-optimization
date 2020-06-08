@@ -18,6 +18,13 @@ Factory::Factory(Factory& old){
   y = old.y;
 }
 
+std::string Factory::ToString(){
+  std::string result = string_format(
+    "[Factory] usedCapacity/capacity: %i/%i; pFailure: %f; x: %i; y: %i",
+    usedCapacity, capacity, pFailure, x, y);
+  return result;
+}
+
 NAN_MODULE_INIT(Factory::Init) {
   v8::Local<v8::FunctionTemplate> ctor = Nan::New<v8::FunctionTemplate>(Factory::New);
   constructor.Reset(ctor);

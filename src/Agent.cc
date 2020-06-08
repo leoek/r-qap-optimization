@@ -209,10 +209,35 @@ int Agent::GetFlowDistanceSum(std::vector<std::vector<int>> permutation){
   return flowDistanceSum;
 }
 
+double Agent::GetFailureRiskSum(std::vector<std::vector<int>> permutation){
+  double failureRiskSum = 0;
+  for (unsigned int i = 0; i < permutation.size(); i++){
+    double machineFailure = 1;
+    for (unsigned int k = 0; k < permutation[i].size(); k++){
+      /**
+       * permutation[i][k] may be -1 if there wasn't any factory available
+       * to asssign. In that case the backup factory is not available (to
+       * minimize the machineFailure risk).
+       */
+      if (permutation[i][k] > 0){
+        machineFailure = machineFailure * factories.at(permutation[i][k])->pFailure;
+        printf("%s\n", factories.at(permutation[i][k])->ToString().c_str());
+      }
+    }
+    failureRiskSum += machineFailure;
+  }
+  return failureRiskSum;
+}
+
 int Agent::RateSolution(Solution &sol){
   // Rate the generated solution
   // #TODO rate all criteria (currently only flow*distance)
-  sol.quality = GetFlowDistanceSum(sol.permutation);
+  int flowDistanceSum = GetFlowDistanceSum(sol.permutation);
+  double failureRiskSum = GetFailureRiskSum(sol.permutation);
+
+  sol.quality = flowDistanceSum;
+
+  printf("Solution %s\n  flowDistanceSum %i\n  failureRiskSum %f\n", sol.ToString().c_str(), flowDistanceSum, failureRiskSum);
   return sol.quality;
 }
 

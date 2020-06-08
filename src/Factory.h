@@ -2,6 +2,7 @@
 #define AGENT_ADDON_FACTORY_H_
 
 #include <nan.h>
+#include "stringFormat.cc"
 
 class Factory : public Nan::ObjectWrap {
 public:
@@ -23,6 +24,7 @@ public:
 
   Factory();
   Factory(Factory&);
+  std::string ToString();
 
   static NAN_GETTER(HandleGetters);
   static NAN_SETTER(HandleSetters);

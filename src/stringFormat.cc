@@ -1,6 +1,9 @@
 // Source: https://stackoverflow.com/a/26221725/7381594
 // License: CC0 1.0
 
+#ifndef AGENT_ADDON_STRING_FORMAT_
+#define AGENT_ADDON_STRING_FORMAT_
+
 #include <memory>
 #include <string>
 #include <stdexcept>
@@ -14,3 +17,5 @@ std::string string_format( const std::string& format, Args ... args )
     snprintf( buf.get(), size, format.c_str(), args ... );
     return std::string( buf.get(), buf.get() + size - 1 ); // We don't want the '\0' inside
 }
+
+#endif  // AGENT_ADDON_STRING_FORMAT_

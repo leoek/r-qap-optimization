@@ -55,6 +55,8 @@ const main = async () => {
     throw error;
   }
 
+  logger.info("native instance", inspect(instance, false, null));
+
   const solutionCountTargetPerWorker = Math.ceil(solutionCountTarget / agents);
 
   if (cluster.isMaster) {
