@@ -1,4 +1,5 @@
 import cluster from "cluster";
+import { inspect } from "util";
 
 import sum from "lodash/sum";
 
@@ -60,8 +61,9 @@ const main = async () => {
     let i = 0;
     const qualities = [];
     let createdSolutionCount = 0;
+    let overallBest = null;
     while (i++ < n) {
-      const { bestQuality, createdSolutions } = await masterMain({
+      const { best, bestQuality, createdSolutions } = await masterMain({
         logger,
         workerCount: agents,
         solutionCountTarget,
@@ -73,8 +75,24 @@ const main = async () => {
       });
       createdSolutionCount += createdSolutions;
       qualities.push(bestQuality);
+      if (!overallBest || best.quality < overallBest.quality) {
+        overallBest = best;
+      }
     }
-    logger.log(`Averaged Quality (n=${n}): `, sum(qualities) / n);
+    if (n > 1) {
+      logger.log(
+        inspect(
+          {
+            n,
+            avgQuality: sum(qualities) / n,
+            overallBest,
+            createdSolutionCount
+          },
+          false,
+          null
+        )
+      );
+    }
   } else if (cluster.isWorker) {
     await workerMain({
       logger,

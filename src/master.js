@@ -155,8 +155,10 @@ const main = async ({
     `Result for ParamILS: ${solved}, ${runtime}, ${runlength}, ${bestQuality}, ${seed}`
   );
   return {
+    runtime,
     createdSolutions,
-    bestQuality
+    bestQuality,
+    best
   };
 };
 

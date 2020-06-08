@@ -2,10 +2,10 @@ import { INSTANCE_TYPE } from "../config";
 
 export const getParametersFromArgs = () => {
   const parameters = {
-    instanceName: "default",
-    instanceType: INSTANCE_TYPE.RQAP,
+    instanceName: "nug12",
+    instanceType: INSTANCE_TYPE.QAP,
     agents: 10,
-    solutionCountTarget: 100000,
+    solutionCountTarget: 10000,
     n: 1
   };
   process.argv.forEach((val, i) => {
