@@ -12,3 +12,14 @@ int GetRndNumberFromRange(int start, int end){
 bool vectorContains(std::vector<int> vector, int val){
     return std::find(vector.begin(), vector.end(), val) != vector.end();
 } 
+
+int getFirstNotInList(std::vector<int> input, std::vector<int> filter){
+    int i = 0;
+    while(i < input.size()){
+        if (!vectorContains(filter, input[i])){
+            return input[i];
+        }
+        i++;
+    }
+    return -1;
+}

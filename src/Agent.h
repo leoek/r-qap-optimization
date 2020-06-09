@@ -14,6 +14,17 @@
 #include "WrappingHelpers.h"
 
 class Agent : public Nan::ObjectWrap {
+private:
+
+double GetRelativeAltFlowDistance(
+  int flowDistanceSumReference,
+  std::vector<std::vector<int>> permutation,
+  std::vector<int> failedFactories);
+double GetSingleFactoryFailureScore(
+  int flowDistanceSumReference,
+  std::vector<std::vector<int>> permutation
+);
+
 public:
   double x;
   double y;
@@ -48,6 +59,7 @@ public:
 
   int GetFlowDistanceSum(std::vector<std::vector<int>>);
   double GetFailureRiskSum(std::vector<std::vector<int>>);
+  int GetAltFlowDistanceSum(std::vector<std::vector<int>>, std::vector<int>);
   int RateSolution(Solution&);
   bool UpdatePersonalPopulation(Solution&);
   bool UpdateGlobalPopulation(Solution&);
