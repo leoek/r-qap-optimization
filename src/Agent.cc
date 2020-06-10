@@ -260,10 +260,14 @@ double Agent::GetSingleFactoryFailureScore(
   for (unsigned int f_i = 0; f_i < factories.size(); f_i++){
     failedFactories[0] = f_i;
     double relAltFlowDistance = GetRelativeAltFlowDistance(referenceFlowDistance, permutation, failedFactories);
-    printf("Factory %i, pFailure %f, relAltFlowDistance %f", f_i, factories[f_i]->pFailure, relAltFlowDistance);
-    printf(" score %f", score);
+    #ifdef DEBUG_OUTPUT
+      printf("Factory %i, pFailure %f, relAltFlowDistance %f", f_i, factories[f_i]->pFailure, relAltFlowDistance);
+      printf(" score %f", score);
+    #endif
     score += factories[f_i]->pFailure * relAltFlowDistance * referenceFlowDistance;
-    printf(" => %f\n", score);
+    #ifdef DEBUG_OUTPUT
+      printf(" => %f\n", score);
+    #endif
   }
   return score;
 }
@@ -280,7 +284,6 @@ double Agent::GetFailureRiskSum(std::vector<std::vector<int>> permutation){
        */
       if (permutation[i][k] > 0){
         machineFailure = machineFailure * factories.at(permutation[i][k])->pFailure;
-        printf("%s\n", factories.at(permutation[i][k])->ToString().c_str());
       }
     }
     failureRiskSum += machineFailure;
@@ -294,12 +297,12 @@ int Agent::RateSolution(Solution &sol){
   int flowDistanceSum = GetFlowDistanceSum(sol.permutation);
   double failureRiskSum = GetFailureRiskSum(sol.permutation);
   double singleFactoryFailureScore = GetSingleFactoryFailureScore(flowDistanceSum, sol.permutation);
-
   sol.quality = flowDistanceSum * failureRiskSum + singleFactoryFailureScore;
-
+  #ifdef DEBUG_OUTPUT
   printf(
-    "Solution %s\n  flowDistanceSum %i\n  failureRiskSum %f\n  singleFactoryFailureScore: %f\n",
+    "RateSolution %s\n  flowDistanceSum %i\n  failureRiskSum %f\n  singleFactoryFailureScore: %f\n",
     sol.ToString().c_str(), flowDistanceSum, failureRiskSum, singleFactoryFailureScore);
+  #endif // DEBUG_OUTPUT
   return sol.quality;
 }
 

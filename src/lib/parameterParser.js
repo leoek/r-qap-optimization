@@ -4,8 +4,8 @@ export const getParametersFromArgs = () => {
   const parameters = {
     instanceName: "default",
     instanceType: INSTANCE_TYPE.RQAP,
-    agents: 10,
-    solutionCountTarget: 100000,
+    agents: 1,
+    solutionCountTarget: 100,
     n: 1
   };
   process.argv.forEach((val, i) => {
