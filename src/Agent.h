@@ -3,6 +3,7 @@
 #define AGENT_ADDON_AGENT_H_
 
 //#define DEBUG_OUTPUT
+//#define QAP_ONLY
 
 #include <nan.h>
 #include "Solution.h"

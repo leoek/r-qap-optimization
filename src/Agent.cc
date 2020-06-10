@@ -19,7 +19,10 @@ NAN_MODULE_INIT(Agent::Init) {
   ctor->InstanceTemplate()->SetInternalFieldCount(1);
   ctor->SetClassName(Nan::New("Agent").ToLocalChecked());
 
-  // link our getters and setter to the object property
+  // link getters and setter to the object property
+  Nan::SetAccessor(ctor->InstanceTemplate(), Nan::New("maxMachineRedundancy").ToLocalChecked(), Agent::HandleGetters, Agent::HandleSetters);
+  Nan::SetAccessor(ctor->InstanceTemplate(), Nan::New("globalBestSolutions").ToLocalChecked(), Agent::HandleGetters, Agent::HandleSetters);
+  Nan::SetAccessor(ctor->InstanceTemplate(), Nan::New("personalBestSolutions").ToLocalChecked(), Agent::HandleGetters, Agent::HandleSetters);
 
   // link functions
   Nan::SetPrototypeMethod(ctor, "addGlobalSolution", AddGlobalSolution);
@@ -324,10 +327,14 @@ int Agent::RateSolution(Solution &sol){
   // Rate the generated solution
   // #TODO rate all criteria (currently only flow*distance)
   sol.flowDistanceSum = GetFlowDistanceSum(sol.permutation);
-  sol.failureRiskSum = GetFailureRiskSum(sol.permutation);
-  sol.singleFactoryFailureScore = GetSingleFactoryFailureScore(sol.flowDistanceSum, sol.permutation);
-  // aggregate the scores
-  sol.quality = sol.flowDistanceSum * sol.failureRiskSum + sol.singleFactoryFailureScore;
+  #ifdef QAP_ONLY
+    sol.quality = sol.flowDistanceSum;
+  #else
+    sol.failureRiskSum = GetFailureRiskSum(sol.permutation);
+    sol.singleFactoryFailureScore = GetSingleFactoryFailureScore(sol.flowDistanceSum, sol.permutation);
+    // aggregate the scores
+    sol.quality = sol.flowDistanceSum * sol.failureRiskSum + sol.singleFactoryFailureScore;
+  #endif // ONLY_FLOW_DISTANCE
   #ifdef DEBUG_OUTPUT
   printf("RatedSolution %s\n", sol.ToString().c_str());
   #endif // DEBUG_OUTPUT
@@ -359,6 +366,7 @@ void Agent::Solve(Solution &sol){
    * for each machine. (For normal QAP instances this is not run since redundacy
    * and capacity are always 1 --> One Machine per Factory for QAP)
    */
+  #ifndef QAP_ONLY
   rLevel++;
   while(rLevel < maxMachineRedundancy){
     currentMachineIndex = 0;
@@ -372,6 +380,7 @@ void Agent::Solve(Solution &sol){
     }
     rLevel++;
   }
+  #endif // QAP_ONLY
   /**
    * The created solution might not justify the redundancy requirements if there
    * wasn't any capacity left to fulfil the requirements.
