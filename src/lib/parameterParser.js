@@ -2,8 +2,8 @@ import { INSTANCE_TYPE } from "../config";
 
 export const getParametersFromArgs = () => {
   const parameters = {
-    instanceName: "default",
-    instanceType: INSTANCE_TYPE.RQAP,
+    instanceName: "nug12",
+    instanceType: INSTANCE_TYPE.QAP,
     agents: 1,
     solutionCountTarget: 100,
     n: 1

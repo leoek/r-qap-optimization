@@ -3,6 +3,14 @@
 using namespace v8;
 using namespace std;
 
+Local<Array> WrapPopulation(std::vector<Solution*> population){
+  v8::Local<v8::Array> jsArray = Nan::New<v8::Array>(population.size());
+  for (size_t i = 0; i < population.size(); i++) {
+    Nan::Set(jsArray, i, CreateWrappedSolution(*population.at(i)));
+  }
+  return jsArray;
+}
+
 Nan::Persistent<v8::FunctionTemplate> Agent::constructor;
 
 NAN_MODULE_INIT(Agent::Init) {
@@ -13,7 +21,7 @@ NAN_MODULE_INIT(Agent::Init) {
 
   // link our getters and setter to the object property
 
-  // ling functions
+  // link functions
   Nan::SetPrototypeMethod(ctor, "addGlobalSolution", AddGlobalSolution);
   Nan::SetPrototypeMethod(ctor, "createSolution", _CreateSolution);
   Nan::SetPrototypeMethod(ctor, "createAndReturnSolution", _CreateAndReturnSolution);
@@ -122,13 +130,31 @@ NAN_METHOD(Agent::AddGlobalSolution) {
 
 NAN_GETTER(Agent::HandleGetters) {
   Agent* self = Nan::ObjectWrap::Unwrap<Agent>(info.This());
-
   std::string propertyName = std::string(*Nan::Utf8String(property));
-  info.GetReturnValue().Set(Nan::Undefined());
+  if (propertyName == "maxMachineRedundancy") {
+    info.GetReturnValue().Set(self->maxMachineRedundancy);
+  } else if (propertyName == "maxGlobalBest"){
+    info.GetReturnValue().Set(self->maxGlobalBest);
+  } else if (propertyName == "globalBestSolutions"){
+    info.GetReturnValue().Set(WrapPopulation(self->globalBestSolutions));
+  } else if (propertyName == "maxPersonalBest"){
+    info.GetReturnValue().Set(self->maxPersonalBest);
+  } else if (propertyName == "personalBestSolutions"){
+    info.GetReturnValue().Set(WrapPopulation(self->personalBestSolutions));
+  } else if (propertyName == "pBestPopulationWeight"){
+    info.GetReturnValue().Set(self->maxPersonalBest);
+  } else if (propertyName == "gBestPopulationWeight"){
+    info.GetReturnValue().Set(self->maxPersonalBest);
+  } else if (propertyName == "rndWeight"){
+    info.GetReturnValue().Set(self->rndWeight);
+  } else {
+    info.GetReturnValue().Set(Nan::Undefined());
+  }
 }
 
 NAN_SETTER(Agent::HandleSetters) {
   Agent* self = Nan::ObjectWrap::Unwrap<Agent>(info.This());
+  return Nan::ThrowError(Nan::New("Agent::Not implemented.").ToLocalChecked());
 }
 
 int Agent::GetNextValue(int level, std::vector<int> prevSelections){
@@ -273,7 +299,10 @@ double Agent::GetSingleFactoryFailureScore(
 }
 
 double Agent::GetFailureRiskSum(std::vector<std::vector<int>> permutation){
-  double failureRiskSum = 0;
+  /**
+   * Start with 1, if the failureRisk is zero (usually QAP case) the resulting sum will be 1
+   **/
+  double failureRiskSum = 1;
   for (unsigned int i = 0; i < permutation.size(); i++){
     double machineFailure = 1;
     for (unsigned int k = 0; k < permutation[i].size(); k++){
@@ -282,7 +311,7 @@ double Agent::GetFailureRiskSum(std::vector<std::vector<int>> permutation){
        * to asssign. In that case the backup factory is not available (to
        * minimize the machineFailure risk).
        */
-      if (permutation[i][k] > 0){
+      if (permutation[i][k] >= 0){
         machineFailure = machineFailure * factories.at(permutation[i][k])->pFailure;
       }
     }
@@ -294,14 +323,13 @@ double Agent::GetFailureRiskSum(std::vector<std::vector<int>> permutation){
 int Agent::RateSolution(Solution &sol){
   // Rate the generated solution
   // #TODO rate all criteria (currently only flow*distance)
-  int flowDistanceSum = GetFlowDistanceSum(sol.permutation);
-  double failureRiskSum = GetFailureRiskSum(sol.permutation);
-  double singleFactoryFailureScore = GetSingleFactoryFailureScore(flowDistanceSum, sol.permutation);
-  sol.quality = flowDistanceSum * failureRiskSum + singleFactoryFailureScore;
+  sol.flowDistanceSum = GetFlowDistanceSum(sol.permutation);
+  sol.failureRiskSum = GetFailureRiskSum(sol.permutation);
+  sol.singleFactoryFailureScore = GetSingleFactoryFailureScore(sol.flowDistanceSum, sol.permutation);
+  // aggregate the scores
+  sol.quality = sol.flowDistanceSum * sol.failureRiskSum + sol.singleFactoryFailureScore;
   #ifdef DEBUG_OUTPUT
-  printf(
-    "RateSolution %s\n  flowDistanceSum %i\n  failureRiskSum %f\n  singleFactoryFailureScore: %f\n",
-    sol.ToString().c_str(), flowDistanceSum, failureRiskSum, singleFactoryFailureScore);
+  printf("RatedSolution %s\n", sol.ToString().c_str());
   #endif // DEBUG_OUTPUT
   return sol.quality;
 }
