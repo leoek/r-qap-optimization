@@ -12,7 +12,7 @@ public:
   // aggregation of all quality scores 
   double quality = -1;
   // distinct quality scores
-  double flowDistanceSum = -1;
+  int flowDistanceSum = -1;
   double failureRiskSum = -1;
   double singleFactoryFailureScore = -1;
 

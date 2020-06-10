@@ -269,11 +269,15 @@ double Agent::GetRelativeAltFlowDistance(
   std::vector<std::vector<int>> permutation,
   std::vector<int> failedFactories
 ){
+  if (referenceFlowDistance < 0){
+    throw std::runtime_error("Agent::GetRelativeAltFlowDistance referenceFlowDistance must be >= 0");
+  }
   int altFlowDistanceSum = GetAltFlowDistanceSum(permutation, failedFactories);
   if (altFlowDistanceSum < 0){
     return 1;
   }
-  if (altFlowDistanceSum < referenceFlowDistance){
+  // The following case will always be triggered if altFlowDistance = 0
+  if (altFlowDistanceSum <= referenceFlowDistance){
     return 0;
   }
   return (double)(1 - (double)referenceFlowDistance/(double)altFlowDistanceSum);
@@ -334,7 +338,7 @@ int Agent::RateSolution(Solution &sol){
     sol.singleFactoryFailureScore = GetSingleFactoryFailureScore(sol.flowDistanceSum, sol.permutation);
     // aggregate the scores
     sol.quality = sol.flowDistanceSum * sol.failureRiskSum + sol.singleFactoryFailureScore;
-  #endif // ONLY_FLOW_DISTANCE
+  #endif // QAP_ONLY
   #ifdef DEBUG_OUTPUT
   printf("RatedSolution %s\n", sol.ToString().c_str());
   #endif // DEBUG_OUTPUT
