@@ -4,6 +4,7 @@
 
 //#define DEBUG_OUTPUT
 //#define QAP_ONLY
+#define IGNORE_DUPLICATE_SOLUTIONS
 
 #include <nan.h>
 #include "Solution.h"

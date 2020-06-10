@@ -405,6 +405,22 @@ void PlaceSolAtPosition(std::vector<Solution*> &population, Solution* sol, int i
 
 bool UpdatePopulation(std::vector<Solution*> &population, int populationSize, Solution &inSol){
   /**
+   * If populations has max size and the solution is worse than the worst from the population
+   * it wont make it into the population anyways
+   */
+  if (population.size() >= populationSize && inSol.quality > population[populationSize - 1]->quality){
+    return false;
+  }
+  #ifdef IGNORE_DUPLICATE_SOLUTIONS
+  // check that the solution is not a duplicate
+  for (unsigned int i = 0; i < population.size(); i++){
+    if (inSol.permutation == population[i]->permutation){
+      // This solution is already part of the population
+      return false;
+    }
+  }
+  #endif //IGNORE_DUPLICATE_SOLUTIONS
+  /**
    * Iterate through the population starting with the worts solution in the population.
    * Usually the loop is exited after the first check, because the new solution is worse
    * than all solutions in the population.
@@ -412,7 +428,7 @@ bool UpdatePopulation(std::vector<Solution*> &population, int populationSize, So
   int i = population.size() - 1;
   while (i >= 0){
     // smaller quality is better
-    if ( inSol.quality < population[i]->quality){
+    if (inSol.quality < population[i]->quality){
       if (i + 1 < populationSize){
         PlaceSolAtPosition(population, population[i], i + 1);
       } else {
