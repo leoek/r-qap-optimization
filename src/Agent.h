@@ -17,7 +17,7 @@
 
 class Agent : public Nan::ObjectWrap {
 private:
-  // This is extracted from the supplied machines
+  // This is extracted from the supplied machines,1 is just the default
   int maxMachineRedundancy = 1;
   int currentMachineIndex = 0;
 
@@ -47,11 +47,16 @@ public:
   Matrix * changeOverMatrix;
   Matrix * distanceMatrix;
 
-  int maxGlobalBest = 10;
   std::vector<Solution*> globalBestSolutions;
-  int maxPersonalBest = 10;
   std::vector<Solution*> personalBestSolutions;
 
+  /**
+   * Configurable Parameters for agents solution creation
+   * These (reasonably) working defaults, the final values
+   * should be provided at agent creation.
+   */
+  int maxGlobalBest = 10;
+  int maxPersonalBest = 10;
   int pBestPopulationWeight = 10;
   int gBestPopulationWeight = 10;
   int rndWeight = 1;

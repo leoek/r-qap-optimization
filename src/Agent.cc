@@ -24,6 +24,12 @@ NAN_MODULE_INIT(Agent::Init) {
   Nan::SetAccessor(ctor->InstanceTemplate(), Nan::New("globalBestSolutions").ToLocalChecked(), Agent::HandleGetters, Agent::HandleSetters);
   Nan::SetAccessor(ctor->InstanceTemplate(), Nan::New("personalBestSolutions").ToLocalChecked(), Agent::HandleGetters, Agent::HandleSetters);
 
+  Nan::SetAccessor(ctor->InstanceTemplate(), Nan::New("maxPersonalBest").ToLocalChecked(), Agent::HandleGetters, Agent::HandleSetters);
+  Nan::SetAccessor(ctor->InstanceTemplate(), Nan::New("maxGlobalBest").ToLocalChecked(), Agent::HandleGetters, Agent::HandleSetters);
+  Nan::SetAccessor(ctor->InstanceTemplate(), Nan::New("pBestPopulationWeight").ToLocalChecked(), Agent::HandleGetters, Agent::HandleSetters);
+  Nan::SetAccessor(ctor->InstanceTemplate(), Nan::New("gBestPopulationWeight").ToLocalChecked(), Agent::HandleGetters, Agent::HandleSetters);
+  Nan::SetAccessor(ctor->InstanceTemplate(), Nan::New("rndWeight").ToLocalChecked(), Agent::HandleGetters, Agent::HandleSetters);
+
   // link functions
   Nan::SetPrototypeMethod(ctor, "addGlobalSolution", AddGlobalSolution);
   Nan::SetPrototypeMethod(ctor, "createSolution", _CreateSolution);
@@ -39,8 +45,15 @@ NAN_METHOD(Agent::New) {
     return Nan::ThrowError(Nan::New("Agent::New - called without new keyword").ToLocalChecked());
   }
 
-  if(info.Length() != 6) {
-    return Nan::ThrowError(Nan::New("Agent::New - unexpected number of arguments").ToLocalChecked());
+  if(info.Length() < 6) {
+    return Nan::ThrowError(Nan::New(
+      "Agent::New - unexpected number of arguments, min these 6 need to be supplied: factoryArray, machineArray, flowMatrix, changeOverMatrix, distanceMatrix, newBestCallBack"
+      ).ToLocalChecked());
+  }
+  if(info.Length() > 11) {
+    return Nan::ThrowError(Nan::New(
+      "Agent::New - too many arguments supply these: factoryArray, machineArray, flowMatrix, changeOverMatrix, distanceMatrix, newBestCallBack, maxPersonalBest, maxGlobalBest, pBestPopulationWeight, gBestPopulationWeight, rndWeight"
+      ).ToLocalChecked());
   }
   // #NIT Arrays currently have no explicit type check
   if (!Nan::New(Matrix::constructor)->HasInstance(info[2])) {
@@ -53,13 +66,11 @@ NAN_METHOD(Agent::New) {
     return Nan::ThrowError(Nan::New("Agent::New - expected argument 5 to be instance of Matrix").ToLocalChecked());
   }
 
-  Nan::Callback *callback = new Nan::Callback(Nan::To<Function>(info[5]).ToLocalChecked());
+  
 
   // create a new instance and wrap our javascript instance
   Agent* self = new Agent();
   self->Wrap(info.Holder());
-
-  self->newBestSolutionCallback = callback;
 
   // initialize it's values
   Local<Array> factoryJsArray = Local<Array>::Cast(info[0]);
@@ -88,7 +99,26 @@ NAN_METHOD(Agent::New) {
   self->flowMatrix = Nan::ObjectWrap::Unwrap<Matrix>(info[2]->ToObject());
   self->changeOverMatrix = Nan::ObjectWrap::Unwrap<Matrix>(info[3]->ToObject());
   self->distanceMatrix = Nan::ObjectWrap::Unwrap<Matrix>(info[4]->ToObject());
-  
+
+  Nan::Callback *callback = new Nan::Callback(Nan::To<Function>(info[5]).ToLocalChecked());
+  self->newBestSolutionCallback = callback;
+
+  if(info[6]->IsNumber()) {
+    self->maxPersonalBest = info[6]->NumberValue();
+  }
+  if(info[7]->IsNumber()) {
+    self->maxGlobalBest = info[7]->NumberValue();
+  }
+  if(info[8]->IsNumber()) {
+    self->pBestPopulationWeight = info[8]->NumberValue();
+  }
+  if(info[9]->IsNumber()) {
+    self->gBestPopulationWeight = info[9]->NumberValue();
+  }
+  if(info[10]->IsNumber()) {
+    self->rndWeight = info[10]->NumberValue();
+  }
+
   // return the wrapped javascript instance
   info.GetReturnValue().Set(info.Holder());
 }

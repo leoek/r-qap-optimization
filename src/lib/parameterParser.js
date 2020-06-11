@@ -5,7 +5,7 @@ export const getParametersFromArgs = () => {
     instanceName: "nug12",
     instanceType: INSTANCE_TYPE.QAP,
     agents: 1,
-    solutionCountTarget: 100,
+    solutionCountTarget: 10000,
     n: 1
   };
   process.argv.forEach((val, i) => {
