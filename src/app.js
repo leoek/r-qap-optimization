@@ -32,7 +32,8 @@ const main = async () => {
     n,
     instanceType,
     instanceName,
-    agentOptions
+    agentOptions,
+    seed
   } = parameters;
 
   /**
@@ -63,27 +64,32 @@ const main = async () => {
   if (cluster.isMaster) {
     let i = 0;
     const qualities = [];
-    let createdSolutionCount = 0;
+    let overallCreatedSolutions = 0;
     let overallBest = null;
+    let overallRuntime = 0;
     while (i++ < n) {
-      const { best, bestQuality, createdSolutions } = await masterMain({
-        logger,
-        workerCount: agents,
-        solutionCountTarget,
-        overallProgress: i,
-        overallProgressTotal: 100,
-        overallSolutionCount: createdSolutionCount,
-        overallSolutionCountTotal:
-          createdSolutionCount + (n - i) * solutionCountTargetPerWorker
-      });
-      createdSolutionCount += createdSolutions;
+      const { best, bestQuality, createdSolutions, runtime } = await masterMain(
+        {
+          logger,
+          workerCount: agents,
+          solutionCountTarget,
+          overallProgress: i,
+          overallProgressTotal: 100,
+          overallSolutionCount: overallCreatedSolutions,
+          overallSolutionCountTotal:
+            overallCreatedSolutions + (n - i) * solutionCountTargetPerWorker
+        }
+      );
+      overallCreatedSolutions += createdSolutions;
       qualities.push(bestQuality);
       if (!overallBest || best.quality < overallBest.quality) {
         overallBest = best;
       }
+      overallRuntime += runtime;
     }
     if (n > 1) {
       logger.log(
+        "overall humand readable result:",
         inspect(
           {
             n,
@@ -96,6 +102,13 @@ const main = async () => {
         )
       );
     }
+    // Assmble result for Paramils
+    const solved = "SAT";
+    logger.log(
+      `Result for ParamILS: ${solved}, ${Math.floor(
+        overallRuntime
+      )}, ${overallCreatedSolutions}, ${overallBest.quality}, ${seed}`
+    );
   } else if (cluster.isWorker) {
     await workerMain({
       logger,

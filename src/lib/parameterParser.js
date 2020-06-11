@@ -13,7 +13,8 @@ export const getParametersFromArgs = () => {
       pBestPopulationWeight: 10,
       gBestPopulationWeight: 10,
       rndWeight: 1
-    }
+    },
+    seed: -1
   };
   process.argv.forEach((val, i) => {
     // 0 and 1 are node and the js filename

@@ -132,17 +132,13 @@ const main = async ({
   const end = performance.now();
   showProgressBar && progressBar.stop();
 
-  // Reuslt Output
-  const solved = true;
+  // Result Output
   const runtime = end - start;
-  const runlength = createdSolutions;
-  const seed = null;
   const bestQuality = best ? best.quality : null;
   logger.log(
     `Human readable result: \n`,
     inspect(
       {
-        solved,
         runtime: `${runtime} ms`,
         createdSolutions,
         bestQuality,
@@ -150,9 +146,6 @@ const main = async ({
       },
       { showHidden: false, depth: null }
     )
-  );
-  logger.log(
-    `Result for ParamILS: ${solved}, ${runtime}, ${runlength}, ${bestQuality}, ${seed}`
   );
   return {
     runtime,
