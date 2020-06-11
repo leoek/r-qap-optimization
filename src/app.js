@@ -31,7 +31,8 @@ const main = async () => {
     solutionCountTarget,
     n,
     instanceType,
-    instanceName
+    instanceName,
+    agentOptions
   } = parameters;
 
   /**
@@ -99,7 +100,8 @@ const main = async () => {
     await workerMain({
       logger,
       instance,
-      solutionCountMax: solutionCountTargetPerWorker
+      solutionCountMax: solutionCountTargetPerWorker,
+      agentOptions
     });
   }
 };

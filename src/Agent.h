@@ -71,6 +71,8 @@ public:
 
   Solution* CreateSolution();
   void CreateSolutions(int);
+  
+  std::string ToString();
 
   Nan::Callback* newBestSolutionCallback;
   static NAN_MODULE_INIT(Init);

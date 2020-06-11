@@ -119,6 +119,8 @@ NAN_METHOD(Agent::New) {
     self->rndWeight = info[10]->NumberValue();
   }
 
+  printf("Created New Agent:\n%s\n", self->ToString().c_str());
+
   // return the wrapped javascript instance
   info.GetReturnValue().Set(info.Holder());
 }
@@ -188,6 +190,17 @@ NAN_GETTER(Agent::HandleGetters) {
 NAN_SETTER(Agent::HandleSetters) {
   Agent* self = Nan::ObjectWrap::Unwrap<Agent>(info.This());
   return Nan::ThrowError(Nan::New("Agent::Not implemented.").ToLocalChecked());
+}
+
+std::string Agent::ToString(){
+  std::string result = string_format(
+    "[Agent] #machines: %i; maxMachineRedundancy: %i; #factories %i;",
+    machines.size(), maxMachineRedundancy, factories.size());
+  result += string_format(
+    " maxGlobalBest: %i; maxPersonalBest: %i; populationWeights(p,g,r): (%i,%i,%i)", 
+    maxGlobalBest, maxPersonalBest, pBestPopulationWeight, gBestPopulationWeight, rndWeight
+  );
+  return result;
 }
 
 int Agent::GetNextValue(int level, std::vector<int> prevSelections){

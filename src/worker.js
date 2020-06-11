@@ -34,7 +34,12 @@ const reportNewSolution = (solution, createdCount) => {
  * @param {nativeInstance} options.instance native instance to initialize the agent
  * @param {number} options.solutionCountMax maximum number of solutions this worker will create
  */
-const workerMain = async ({ logger, instance, solutionCountMax = 0 }) => {
+const workerMain = async ({
+  logger,
+  instance,
+  solutionCountMax = 0,
+  agentOptions = {}
+}) => {
   logger.info("Worker started");
   if (cluster.isMaster) {
     logger.warn("Executing worker main method as master");
@@ -56,6 +61,14 @@ const workerMain = async ({ logger, instance, solutionCountMax = 0 }) => {
     distanceMatrix
   } = instance;
 
+  const {
+    maxPersonalBest,
+    maxGlobalBest,
+    pBestPopulationWeight,
+    gBestPopulationWeight,
+    rndWeight
+  } = agentOptions;
+
   // Every worker process holds it's own agent
   const agent = new agentaddon.Agent(
     factories,
@@ -69,7 +82,12 @@ const workerMain = async ({ logger, instance, solutionCountMax = 0 }) => {
         inspect({ err, solution }, false, null)
       );
       reportNewSolution(solution, solutionCount);
-    }
+    },
+    maxPersonalBest,
+    maxGlobalBest,
+    pBestPopulationWeight,
+    gBestPopulationWeight,
+    rndWeight
   );
 
   // Receive messages from the master process.
