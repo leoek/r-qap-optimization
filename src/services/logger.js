@@ -15,12 +15,12 @@ const getLogPrefix = () => {
 /**
  * Creates a simple js console compatible logger
  *
- * @param {Object} options
+ * @param {object} options
  * @param {string[]} options.logLevels List of levels which should be logged
  */
 const create = ({ logLevels = allLogLevels }) => {
   const logger = {
-    log: console.log
+    log: (...args) => console.log(getLogPrefix(), ...args)
   };
   allLogLevels.forEach(level => {
     if (logLevels.includes(level)) {

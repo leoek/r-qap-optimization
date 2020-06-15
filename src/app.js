@@ -12,7 +12,6 @@ import config, { INSTANCE_TYPE } from "./config";
 
 import masterMain from "./master";
 import workerMain from "./worker";
-import { objectValues } from "./helpers";
 
 const qapParser = createQAPParser();
 const rqapParser = createRQAPParser();
@@ -59,8 +58,6 @@ const main = async () => {
 
   logger.info("native instance", inspect(instance, false, null));
 
-  const solutionCountTargetPerWorker = Math.ceil(solutionCountTarget / agents);
-
   if (cluster.isMaster) {
     let i = 0;
     const qualities = [];
@@ -73,15 +70,11 @@ const main = async () => {
           logger,
           workerCount: agents,
           solutionCountTarget,
-          overallProgress: i,
-          overallProgressTotal: 100,
-          overallSolutionCount: overallCreatedSolutions,
-          overallSolutionCountTotal:
-            overallCreatedSolutions + (n - i) * solutionCountTargetPerWorker
+          addToProgressBar: n > 1 ? `| ${i}/${n}` : ""
         }
       );
-      overallCreatedSolutions += createdSolutions;
       qualities.push(bestQuality);
+      overallCreatedSolutions += createdSolutions;
       if (!overallBest || best.quality < overallBest.quality) {
         overallBest = best;
       }
@@ -89,13 +82,14 @@ const main = async () => {
     }
     if (n > 1) {
       logger.log(
-        "overall humand readable result:",
+        "overall result:\n",
         inspect(
           {
+            qualities,
             n,
+            overallCreatedSolutions,
             avgQuality: sum(qualities) / n,
-            overallBest,
-            createdSolutionCount
+            overallBest
           },
           false,
           null
@@ -110,6 +104,9 @@ const main = async () => {
       )}, ${overallCreatedSolutions}, ${overallBest.quality}, ${seed}`
     );
   } else if (cluster.isWorker) {
+    const solutionCountTargetPerWorker = Math.ceil(
+      solutionCountTarget / agents
+    );
     await workerMain({
       logger,
       instance,

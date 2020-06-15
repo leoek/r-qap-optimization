@@ -1,6 +1,31 @@
 import set from "lodash/set";
 import { INSTANCE_TYPE } from "../config";
 
+/**
+ * agentOptions type defintion
+ * @typedef {object} agentOptions Configuration Options per agent
+ * @property {number} agentOptions.maxPersonalBest int, size of personal population
+ * @property {number} agentOptions.maxGlobalBest int, size of personal population
+ * @property {number} agentOptions.pBestPopulationWeight int
+ * @property {number} agentOptions.gBestPopulationWeight int
+ * @property {number} agentOptions.rndWeight int
+ *
+ * parameters type definition
+ * @typedef {object} parameters
+ * @property {string} parameters.instanceName
+ * @property {string} parameters.instanceType expects oneof INSTANCE_TYPE
+ * @property {number} parameters.agents int, number of agents/workers
+ * @property {number} parameters.solutionCountTarget int, number of solutions to create
+ * @property {number} parameters.n int, number of runs to get best and average
+ * @property {agentOptions} parameters.agentOptions Configuration Options per agent
+ * @property {number} parameters.seed ignored
+ */
+
+/**
+ * accepts ordered parameters
+ * @param {parameters} parameters
+ * @returns {parameters}
+ */
 const indexParser = parameters => {
   process.argv.forEach((val, i) => {
     // 0 and 1 are node and the js filename
@@ -29,6 +54,11 @@ const indexParser = parameters => {
   return parameters;
 };
 
+/**
+ * accepts parameters in the format used by paramils
+ * @param {parameters} parameters
+ * @returns {parameters}
+ */
 const paramilsParser = parameters => {
   const paramNames = Object.keys(parameters);
   const agentOptionParamNames = Object.keys(parameters.agentOptions);
@@ -60,12 +90,18 @@ const paramilsParser = parameters => {
   return parameters;
 };
 
+/**
+ * @returns {parameters}
+ */
 export const getParametersFromArgs = () => {
+  /**
+   * @type parameters
+   */
   const parameters = {
     instanceName: "nug12",
     instanceType: INSTANCE_TYPE.QAP,
     agents: 1,
-    solutionCountTarget: 10000,
+    solutionCountTarget: 1000,
     n: 1,
     agentOptions: {
       maxPersonalBest: 10,

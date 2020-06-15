@@ -18,27 +18,30 @@ const getCreatedSolutions = createdWorkerSolutions =>
  * @param {object} options.logger console compatible logger
  * @param {number} options.workerCount number of workers and therefore agents
  * @param {number=} options.solutionCountTarget number of solutions to create before stopping workers and therefore agents
+ * @param {boolean=} options.showProgressBar whether to show a progressbar, defaults to the value defined in the config
+ * @param {string=""} options.addToProgressBar string to attach to the end of the progressbar
+ * @param {function(Solution):void=} options.newSolutionCallback optional callback (Solution) => void, called if a worker reports a new solution
+ * @param {function(Solution):void=} options.newBestSolutionCallback  optional callback (Solution) => void, called if a new best solution was found
  */
 const main = async ({
   logger,
   workerCount = 1,
   solutionCountTarget,
-  overallProgress,
-  overallProgressTotal,
-  overallSolutionCount = 0,
-  overallSolutionCountTotal
+  showProgressBar = config.logging.progressbar,
+  addToProgressBar = "",
+  newSolutionCallback,
+  newBestSolutionCallback
 }) => {
-  // This will contain the best solution (this is a native instance)
+  // This will contain the best found solution (might be a native instance)
   let best = null;
   let createdSolutions = 0;
 
   // progress bar
-  const showProgressBar = config.logging.progressbar;
   const progressBar = showProgressBar
     ? new cliProgress.SingleBar(
         {
           clearOnComplete: false,
-          format: `progress [{bar}] {percentage}% | ETA: {eta_formatted} ({eta}s) | {value}/{total} | ${overallProgress}/${overallProgressTotal} | {bestQuality}`
+          format: `progress [{bar}] {percentage}% | ETA: {eta_formatted} ({eta}s) | {value}/{total} | {bestQuality} ${addToProgressBar}`
         },
         cliProgress.Presets.shades_classic
       )
@@ -68,7 +71,7 @@ const main = async ({
         msg.payload.createdSolutions;
       createdSolutions = getCreatedSolutions(createdWorkerSolutions);
       showProgressBar &&
-        progressBar.update(overallSolutionCount + createdSolutions, {
+        progressBar.update(createdSolutions, {
           bestQuality: best && best.quality
         });
       if (solutionCountTarget && createdSolutions > solutionCountTarget) {
@@ -76,26 +79,25 @@ const main = async ({
       }
     }
     if (msg.type === MESSAGE_TYPE.NEW_SOLUTION) {
-      if (!best || best.quality > msg.payload.solution.quality) {
-        best = msg.payload.solution;
-        if (best) {
-          logger.log("new best", {
-            quality: best.quality,
-            createdSolutions,
-            permutation: best.permutation
-          });
-        }
-      }
       // broadcast new solutions to all workers
       broadcast(newMessage(MESSAGE_TYPE.NEW_SOLUTION, msg.payload));
+      // call callback fn if supplied
+      newSolutionCallback && newSolutionCallback(msg.payload.solution);
+      // check whether this is the new global best
+      if (!best || best.quality > msg.payload.solution.quality) {
+        best = msg.payload.solution;
+        // call callback fn if supplied with new global best
+        newBestSolutionCallback && newBestSolutionCallback(best);
+        logger.log("new best solution", {
+          quality: best.quality,
+          createdSolutions,
+          permutation: best.permutation
+        });
+      }
     }
   };
 
-  showProgressBar &&
-    progressBar.start(
-      overallSolutionCountTotal || solutionCountTarget,
-      overallSolutionCount
-    );
+  showProgressBar && progressBar.start(solutionCountTarget, 0);
 
   const start = performance.now();
   for (let i = 0; i < workerCount; i++) {
@@ -136,7 +138,7 @@ const main = async ({
   const runtime = end - start;
   const bestQuality = best ? best.quality : null;
   logger.log(
-    `Human readable result: \n`,
+    `Result\n`,
     inspect(
       {
         runtime: `${runtime} ms`,
