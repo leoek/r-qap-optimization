@@ -1,5 +1,6 @@
 import bindings from "bindings";
 import cluster from "cluster";
+import get from "lodash/get";
 
 import { sleep } from "./helpers";
 import { newMessage } from "./lib/messaging";
@@ -37,13 +38,21 @@ const reportNewSolution = (solution, createdCount) => {
 const workerMain = async ({
   logger,
   instance,
-  solutionCountMax = 0,
-  agentOptions = {}
+  inSolutionCountMax = 0,
+  inAgentOptions = {}
 }) => {
   logger.info("Worker started");
   if (cluster.isMaster) {
     logger.warn("Executing worker main method as master");
   }
+
+  const workerParams = JSON.parse(process.env.workerParams);
+  const solutionCountMax = get(
+    workerParams,
+    "solutionCountMax",
+    inSolutionCountMax
+  );
+  const agentOptions = get(workerParams, "agentOptions", inAgentOptions);
 
   /**
    * This flag might be supplied by the master to stop

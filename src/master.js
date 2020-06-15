@@ -30,7 +30,8 @@ const main = async ({
   showProgressBar = config.logging.progressbar,
   addToProgressBar = "",
   newSolutionCallback,
-  newBestSolutionCallback
+  newBestSolutionCallback,
+  agentOptions
 }) => {
   // This will contain the best found solution (might be a native instance)
   let best = null;
@@ -88,7 +89,7 @@ const main = async ({
         best = msg.payload.solution;
         // call callback fn if supplied with new global best
         newBestSolutionCallback && newBestSolutionCallback(best);
-        logger.log("new best solution", {
+        logger.info("new best solution", {
           quality: best.quality,
           createdSolutions,
           permutation: best.permutation
@@ -99,16 +100,25 @@ const main = async ({
 
   showProgressBar && progressBar.start(solutionCountTarget, 0);
 
+  const solutionCountTargetPerWorker = Math.ceil(
+    solutionCountTarget / workerCount
+  );
+
   const start = performance.now();
   for (let i = 0; i < workerCount; i++) {
-    const worker = cluster.fork();
+    const worker = cluster.fork({
+      workerParams: JSON.stringify({
+        agentOptions,
+        solutionCountMax: solutionCountTargetPerWorker
+      })
+    });
     worker.on("message", messageHandler);
   }
 
   // Handle Worker Exit
   cluster.on("exit", (worker, code, signal) => {
-    logger.info(`worker ${worker.id} with pid ${worker.process.pid} died`);
-    logger.info({
+    logger.debug(`worker ${worker.id} with pid ${worker.process.pid} died`);
+    logger.debug({
       createdSolutions,
       quality: best ? best.quality : null,
       workersLeft: objectValues(cluster.workers).length
@@ -137,18 +147,6 @@ const main = async ({
   // Result Output
   const runtime = end - start;
   const bestQuality = best ? best.quality : null;
-  logger.log(
-    `Result\n`,
-    inspect(
-      {
-        runtime: `${runtime} ms`,
-        createdSolutions,
-        bestQuality,
-        best
-      },
-      { showHidden: false, depth: null }
-    )
-  );
   return {
     runtime,
     createdSolutions,

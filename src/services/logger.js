@@ -4,9 +4,9 @@ const allLogLevels = ["error", "warn", "info", "debug"];
 
 const getLogPrefix = () => {
   if (cluster.isMaster) {
-    return `Process ${process.pid}: MASTER`;
+    return `\nProcess ${process.pid}: MASTER`;
   } else if (cluster.isWorker) {
-    return `Process ${process.pid}: WORKER ${cluster.worker.id}`;
+    return `\nProcess ${process.pid}: WORKER ${cluster.worker.id}`;
   } else {
     return "";
   }

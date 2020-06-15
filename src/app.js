@@ -80,22 +80,21 @@ const main = async () => {
       }
       overallRuntime += runtime;
     }
-    if (n > 1) {
-      logger.log(
-        "overall result:\n",
-        inspect(
-          {
-            qualities,
-            n,
-            overallCreatedSolutions,
-            avgQuality: sum(qualities) / n,
-            overallBest
-          },
-          false,
-          null
-        )
-      );
-    }
+    logger.log(
+      "overall result:\n",
+      inspect(
+        {
+          qualities,
+          n,
+          overallCreatedSolutions,
+          overallRuntime,
+          avgQuality: sum(qualities) / n,
+          overallBest
+        },
+        false,
+        null
+      )
+    );
     // Assmble result for Paramils
     const solved = "SAT";
     logger.log(

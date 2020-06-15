@@ -118,8 +118,10 @@ NAN_METHOD(Agent::New) {
   if(info[10]->IsNumber()) {
     self->rndWeight = info[10]->NumberValue();
   }
-
-  printf("Created New Agent:\n%s\n", self->ToString().c_str());
+  
+  #ifdef DEBUG_OUTPUT
+  printf("\nCreated New Agent:\n%s\n", self->ToString().c_str());
+  #endif // DEBUG_OUTPUT
 
   // return the wrapped javascript instance
   info.GetReturnValue().Set(info.Holder());

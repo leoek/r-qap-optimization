@@ -48,15 +48,15 @@
     "native:rebuild:debug": "node-gyp --debug configure rebuild",
     "serve:node": "node dist/app.js",
     "serve:debug": "node --inspect --nolazy dist/app.js",
-    "watch": "nodemon dist/app.js",
-    "watch:debug": "nodemon --inspect --nolazy dist/app.js",
+    "serveOptimizeParams": "node dist/optimizeParams.js",
     "build": "yarn js:build && yarn native:build",
     "rebuild": "yarn js:build && yarn native:rebuild",
     "build:debug": "yarn js:build:debug && yarn native:build:debug",
     "rebuild:debug": "yarn js:build:debug && yarn native:rebuild:debug",
     "start": "nodemon -e js,ts,cc,h --watch src --exec \"yarn build:debug && yarn serve:debug\"",
     "js:start": "nodemon -e js,ts --watch src --exec \"yarn js:build:debug && yarn serve:debug\"",
-    "native:start": "nodemon -e cc,h --watch src --exec \"yarn native:build:debug\""
+    "native:start": "nodemon -e cc,h --watch src --exec \"yarn native:build:debug && yarn serve:debug\"",
+    "startOptimizeParams": "yarn rebuild && nodemon -e js,ts --watch src --exec \"yarn js:build && yarn serveOptimizeParams\""
   },
   "devDependencies": {
     "@babel/cli": "^7.0.0",
