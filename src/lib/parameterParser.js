@@ -98,11 +98,11 @@ export const getParametersFromArgs = () => {
    * @type parameters
    */
   const parameters = {
-    instanceName: "nug12",
+    instanceName: "nug30",
     instanceType: INSTANCE_TYPE.QAP,
     agents: 1,
     solutionCountTarget: 10000,
-    n: 5,
+    n: 10,
     agentOptions: {
       maxPersonalBest: 10,
       maxGlobalBest: 10,
