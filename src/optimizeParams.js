@@ -206,10 +206,13 @@ const main = async () => {
         "sol"
       );
       logger.log(
-        `\nusing: ${solutionId}\nbest:  ${get(gBestSolutions, "0.id")} (${get(
+        `k=${k}\nusing: ${solutionId}\nbest:  ${get(
           gBestSolutions,
-          "0.quality"
-        )}, ${get(gBestSolutions, "0.found")})`
+          "0.id"
+        )} (${get(gBestSolutions, "0.quality")}, ${get(
+          gBestSolutions,
+          "0.found"
+        )})`
       );
       logger.debug("optimization population", {
         personalPopulationLength: pBestSolutions.map(p => p.length),
