@@ -57,6 +57,9 @@ const main = async ({
   logger.info(`about to start ${workerCount} worker`);
   const createdWorkerSolutions = Array(workerCount).fill(0);
 
+  // configure the max event listeners warning, we need this amount
+  process.setMaxListeners(3 * workerCount);
+
   // Receive Solutions from Workers
   const messageHandler = msg => {
     config.logging.messages &&

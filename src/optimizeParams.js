@@ -1,6 +1,6 @@
 import cluster from "cluster";
 import { inspect } from "util";
-import { get, set, random, sum, sortBy } from "lodash";
+import { get, set, random, sum, shuffle } from "lodash";
 import cliProgress from "cli-progress";
 
 import getParametersFromArgs from "./lib/parameterParser";
@@ -39,6 +39,65 @@ const paramSpace = {
   }
 };
 
+const updatePopulationMergeDuplicates = (
+  population,
+  newSolution,
+  maxPopulationSize
+) => {
+  const foundIndexInPopulation = population.findIndex(
+    sol => sol.id === newSolution.id
+  );
+
+  if (foundIndexInPopulation !== -1) {
+    // average with the prev results with these parameters parameters
+    const found = population[foundIndexInPopulation].found + 1;
+    population[foundIndexInPopulation] = {
+      ...population[foundIndexInPopulation],
+      found,
+      quality:
+        ((found - 1) / found) * population[foundIndexInPopulation].quality +
+        (1 / found) * newSolution.quality,
+      best: Array.isArray(population[foundIndexInPopulation].best)
+        ? [...population[foundIndexInPopulation].best, newSolution.best]
+        : [population[foundIndexInPopulation].best, newSolution.best],
+      runtime:
+        ((found - 1) / found) * population[foundIndexInPopulation].runtime +
+        (1 / found) * newSolution.runtime
+    };
+  } else {
+    population.push(newSolution);
+  }
+  population.sort((a, b) => a.quality - b.quality);
+  //drop the worst one if maxBestSolutions is reached
+  if (population.length > maxPopulationSize) {
+    population.length = maxPopulationSize;
+  }
+  return !!population.find(sol => sol.id === newSolution.id);
+};
+
+const updatePopulationIgnoreDuplicates = (
+  population,
+  newSolution,
+  maxPopulationSize
+) => {
+  let i = population.length - 1;
+  while (i >= 0) {
+    if (newSolution.quality < population[i].quality) {
+      if (i + 1 < maxPopulationSize) {
+        population[i + 1] = population[i];
+      }
+      i--;
+    } else {
+      break;
+    }
+  }
+  if (i + 1 < maxPopulationSize) {
+    population[i + 1] = newSolution;
+    return true;
+  }
+  return false;
+};
+
 const main = async () => {
   const logLevels =
     (cluster.isMaster && config.logging.master) ||
@@ -75,11 +134,22 @@ const main = async () => {
 
   if (cluster.isMaster) {
     const skipDuplicateParameterSets = false;
-    const maxIterations = 10000;
-    const maxBestSolutions = 10;
-    const bestSolutions = [];
+    const maxIterations = 1000;
+    const agents = 5;
+    // one per worker
+    const pBestSolutions = Array(agents).fill([]);
+    const gBestSolutions = [];
+    const maxPersonalBest = 3;
+    const maxGlobalBest = 3;
+    const pBestPopulationWeight = 10;
+    const gBestPopulationWeight = 10;
     const rndWeight = 1;
-    const populationWeight = 10;
+
+    // average the quality of the duplicates and sort the population again if duplicates are allowed
+    const updatePopulation = skipDuplicateParameterSets
+      ? updatePopulationIgnoreDuplicates
+      : updatePopulationMergeDuplicates;
+
     const paramKeys = [
       "agents",
       ...Object.keys(paramSpace.agentOptions).map(key => `agentOptions.${key}`)
@@ -91,7 +161,7 @@ const main = async () => {
       ? new cliProgress.SingleBar(
           {
             clearOnComplete: false,
-            format: `progress [{bar}] {percentage}% | ETA: {eta_formatted} ({eta}s) | {value}/{total} | agents: {agents}`
+            format: `progress [{bar}] {percentage}% | ETA: {eta_formatted} ({eta}s) | {value}/{total} | agents: {agents} | # of current workers: {workerCount}`
           },
           cliProgress.Presets.shades_classic
         )
@@ -100,61 +170,59 @@ const main = async () => {
     showProgressBar && progressBar.start(maxIterations * n, 0);
     let k = 0;
     while (k < maxIterations) {
+      let workerIndex = k % agents;
       // determine new parameters
       const parameters = {};
-      paramKeys.forEach(paramKey => {
-        const selectorIndex = random(0, rndWeight + populationWeight);
-        if (
-          selectorIndex <= rndWeight ||
-          bestSolutions.length < maxBestSolutions
-        ) {
-          set(
-            parameters,
-            paramKey,
-            get(paramSpace, paramKey)[
+      // randomize the param order with Fisher-Yates shuffle
+      shuffle(paramKeys).forEach(paramKey => {
+        let selectedValue;
+        while (selectedValue === null || selectedValue === undefined) {
+          const selectorIndex = random(
+            0,
+            rndWeight + pBestPopulationWeight + gBestPopulationWeight
+          );
+          if (selectorIndex <= rndWeight) {
+            selectedValue = get(paramSpace, paramKey)[
               random(0, get(paramSpace, paramKey).length - 1)
-            ]
-          );
-        } else {
-          set(
-            parameters,
-            paramKey,
-            get(
-              bestSolutions[random(0, bestSolutions.length - 1)].parameters,
+            ];
+          } else if (selectorIndex <= rndWeight + pBestPopulationWeight) {
+            selectedValue = get(
+              pBestSolutions[workerIndex][
+                random(0, pBestSolutions[workerIndex].length - 1)
+              ]?.parameters,
               paramKey
-            )
-          );
+            );
+          } else {
+            selectedValue = get(
+              gBestSolutions[random(0, gBestSolutions.length - 1)]?.parameters,
+              paramKey
+            );
+          }
         }
+        set(parameters, paramKey, selectedValue);
       });
-      const id = paramKeys.reduce(
+      const solutionId = paramKeys.reduce(
         (result, paramKey) => `${result}_${get(parameters, paramKey)}`,
         "sol"
       );
       logger.log(
-        "using\n",
-        inspect(
-          {
-            parameters,
-            id,
-            best: {
-              parameters: get(bestSolutions, "0.parameters"),
-              found: get(bestSolutions, "0.found"),
-              quality: get(bestSolutions, "0.quality")
-            }
-          },
-          false,
-          null
-        )
+        `\nusing: ${solutionId}\nbest:  ${get(gBestSolutions, "0.id")} (${get(
+          gBestSolutions,
+          "0.quality"
+        )}, ${get(gBestSolutions, "0.found")})`
       );
-      logger.debug(
-        "optimization population",
-        inspect(bestSolutions, false, null)
-      );
+      logger.debug("optimization population", {
+        personalPopulationLength: pBestSolutions.map(p => p.length),
+        globalPopulationLength: gBestSolutions.length
+      });
       if (
-        !(
-          skipDuplicateParameterSets && bestSolutions.find(sol => sol.id === id)
-        )
+        skipDuplicateParameterSets &&
+        (pBestSolutions[workerIndex].find(sol => sol.id === id) ||
+          gBestSolutions.find(sol => sol.id === id))
       ) {
+        // noop this is a duplicate and skipDuplicateParameterSets is true
+        // k is not increaded in this case right now as the solution is omitted
+      } else {
         const newSolution = {
           found: 1,
           parameters,
@@ -163,9 +231,9 @@ const main = async () => {
           createdSolutions: 0,
           best: 0,
           runtime: 0,
-          id
+          id: solutionId
         };
-        const { agentOptions, agents } = parameters;
+        const { agentOptions, agents: workerCount } = parameters;
 
         // test these parameters
         let i = 0;
@@ -178,7 +246,7 @@ const main = async () => {
             runtime
           } = await masterMain({
             logger,
-            workerCount: agents,
+            workerCount,
             solutionCountTarget,
             showProgressBar: false,
             agentOptions
@@ -189,56 +257,30 @@ const main = async () => {
             newSolution.best = best;
           }
           newSolution.runtime += runtime;
-          showProgressBar && progressBar.update(k * n + i, { agents });
+          showProgressBar &&
+            progressBar.update(k * n + i, { agents, workerCount });
         }
         newSolution.quality = sum(qualities) / n;
-
-        // average the quality of the duplicates and sort the population again if duplicates are allowed
-        if (!skipDuplicateParameterSets) {
-          const foundIndexInBest = bestSolutions.findIndex(
-            sol => sol.id === newSolution.id
+        const didUpdatePBest = updatePopulation(
+          pBestSolutions[workerIndex],
+          newSolution,
+          maxPersonalBest
+        );
+        if (didUpdatePBest) {
+          const didUpdateGBest = updatePopulation(
+            gBestSolutions,
+            newSolution,
+            maxGlobalBest
           );
-
-          if (foundIndexInBest !== -1) {
-            // average with the prev results with these parameters parameters
-            const found = bestSolutions[foundIndexInBest].found + 1;
-            bestSolutions[foundIndexInBest] = {
-              ...bestSolutions[foundIndexInBest],
-              found,
-              quality:
-                ((found - 1) / found) *
-                  bestSolutions[foundIndexInBest].quality +
-                (1 / found) * newSolution.quality,
-              best: Array.isArray(bestSolutions[foundIndexInBest].best)
-                ? [...bestSolutions[foundIndexInBest].best, newSolution.best]
-                : [bestSolutions[foundIndexInBest].best, newSolution.best],
-              runtime:
-                ((found - 1) / found) *
-                  bestSolutions[foundIndexInBest].runtime +
-                (1 / found) * newSolution.runtime
-            };
-          } else {
-            bestSolutions.push(newSolution);
-          }
-          bestSolutions.sort((a, b) => a.quality - b.quality);
-          //drop the worst one if maxBestSolutions is reached
-          if (bestSolutions.length > maxBestSolutions) {
-            bestSolutions.length = maxBestSolutions;
-          }
-        } else {
-          i = bestSolutions.length - 1;
-          while (i >= 0) {
-            if (newSolution.quality < bestSolutions[i].quality) {
-              if (i + 1 < maxBestSolutions) {
-                bestSolutions[i + 1] = bestSolutions[i];
-              }
-              i--;
-            } else {
-              break;
-            }
-          }
-          if (i + 1 < maxBestSolutions) {
-            bestSolutions[i + 1] = newSolution;
+          if (didUpdateGBest) {
+            logger.debug(
+              "\nupdated global population\n",
+              gBestSolutions.map(({ quality, found, parameters }) => ({
+                quality,
+                found,
+                parameters
+              }))
+            );
           }
         }
         k++;
@@ -249,12 +291,16 @@ const main = async () => {
       "Parameter Optimization Result",
       inspect(
         {
-          population: bestSolutions,
+          pBestSolutions,
+          gBestSolutions,
           maxIterations,
-          maxBestSolutions,
+          agents,
+          maxPersonalBest,
+          maxGlobalBest,
+          pBestPopulationWeight,
+          gBestPopulationWeight,
           rndWeight,
-          populationWeight,
-          best: bestSolutions[0]
+          best: gBestSolutions[0]
         },
         false,
         null
