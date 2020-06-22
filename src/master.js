@@ -99,6 +99,12 @@ const main = async ({
         });
       }
     }
+    if (msg.type === MESSAGE_TYPE.AGENT_STATE) {
+      logger.debug(
+        "agent reported the following state",
+        inspect(msg.payload, false, null)
+      );
+    }
   };
 
   showProgressBar && progressBar.start(solutionCountTarget, 0);

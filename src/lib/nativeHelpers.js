@@ -7,4 +7,10 @@ const agentaddon = bindings("agentaddon");
  * @returns {Solution} agentaddon.solution this is always a native solution
  */
 export const toNativeSolution = solution =>
-  new agentaddon.Solution(solution.permutation, solution.quality);
+  new agentaddon.Solution(
+    solution.permutation,
+    solution.quality,
+    solution.flowDistanceSum,
+    solution.failureRiskSum,
+    solution.singleFactoryFailureScore
+  );
