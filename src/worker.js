@@ -49,7 +49,8 @@ const reportNewSolution = (solution, createdCount) => {
  * @param {object} options.logger console compatible logger
  * @param {nativeInstance} options.instance native instance to initialize the agent
  * @param {number} options.solutionCountMax maximum number of solutions this worker will create
- * @param {number} options.batchSize number of solutions to create before returning to the event loop and reporting back
+ * @param {agentOptions} options.agentOptions configuration options for this agent
+ * @param {number=100} options.batchSize number of solutions to create before returning to the event loop and reporting back
  *   - a higher number decreases communication and therefore increases performance
  *   - a lower number improves synchronization between agents (global population is updated earlier)
  * @param {object} resumeOptions supply an agent state to resume a previous execution
@@ -58,8 +59,14 @@ const reportNewSolution = (solution, createdCount) => {
  * @param {Solution[]} resumeOptions.globalBestSolutions population with the global best solutions
  */
 const workerMain = async (
-  { logger, instance, inSolutionCountMax, inAgentOptions = {} },
-  resumeOptions
+  {
+    logger,
+    instance,
+    solutionCountMax: inSolutionCountMax,
+    agentOptions: inAgentOptions = {},
+    batchSize = 100
+  },
+  inResumeOptions
 ) => {
   logger.info("Worker started");
   if (cluster.isMaster) {
@@ -78,6 +85,7 @@ const workerMain = async (
     inSolutionCountMax
   );
   const agentOptions = get(workerParams, "agentOptions", inAgentOptions);
+  const resumeOptions = get(workerParams, "resumeOptions", inResumeOptions);
 
   /**
    * This flag might be supplied by the master to stop
@@ -166,8 +174,8 @@ const workerMain = async (
   ) {
     // Worker needs time to recv messages and callbacks before executing native code again...
     await sleep(1);
-    agent.createSolutions(100);
-    solutionCount += 100;
+    agent.createSolutions(batchSize);
+    solutionCount += batchSize;
     reportCreatedSolutionsCount(solutionCount);
   }
   reportCreatedSolutionsCount(solutionCount);
