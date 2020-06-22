@@ -6,8 +6,24 @@ import { sleep } from "./helpers";
 import { newMessage } from "./lib/messaging";
 import config, { MESSAGE_TYPE } from "./config";
 import { inspect } from "util";
+import { toNativeSolution } from "./lib/nativeHelpers";
 
 const agentaddon = bindings("agentaddon");
+
+const reportAgentState = (
+  createdSolutions,
+  personalBestSolutions,
+  globalBestSolutions
+) => {
+  process.send(
+    newMessage(MESSAGE_TYPE.AGENT_STATE, {
+      workerId: cluster.worker.id,
+      createdSolutions,
+      personalBestSolutions,
+      globalBestSolutions
+    })
+  );
+};
 
 const reportCreatedSolutionsCount = createdSolutions => {
   process.send(
@@ -29,23 +45,32 @@ const reportNewSolution = (solution, createdCount) => {
 };
 
 /**
- *
  * @param {object} options
  * @param {object} options.logger console compatible logger
  * @param {nativeInstance} options.instance native instance to initialize the agent
  * @param {number} options.solutionCountMax maximum number of solutions this worker will create
+ * @param {number} options.batchSize number of solutions to create before returning to the event loop and reporting back
+ *   - a higher number decreases communication and therefore increases performance
+ *   - a lower number improves synchronization between agents (global population is updated earlier)
+ * @param {object} resumeOptions supply an agent state to resume a previous execution
+ * @param {number} resumeOptions.solutionCount solutions created until this point
+ * @param {Solution[]} resumeOptions.personalBestSolutions population with the agents personal best solutions
+ * @param {Solution[]} resumeOptions.globalBestSolutions population with the global best solutions
  */
-const workerMain = async ({
-  logger,
-  instance,
-  inSolutionCountMax = 0,
-  inAgentOptions = {}
-}) => {
+const workerMain = async (
+  { logger, instance, inSolutionCountMax, inAgentOptions = {} },
+  resumeOptions
+) => {
   logger.info("Worker started");
   if (cluster.isMaster) {
     logger.warn("Executing worker main method as master");
   }
 
+  /**
+   * workerParams from env have priority, they might be set in
+   * a node cluster setup. (if the worker was started as child_process
+   * by the master process)
+   */
   const workerParams = JSON.parse(process.env.workerParams);
   const solutionCountMax = get(
     workerParams,
@@ -60,7 +85,7 @@ const workerMain = async ({
    */
   let shouldStop = false;
   // solutions created by this worker
-  let solutionCount = 0;
+  let solutionCount = get(resumeOptions, "solutionCount", 0);
 
   const {
     factories,
@@ -99,16 +124,34 @@ const workerMain = async ({
     rndWeight
   );
 
+  /**
+   * rehydrate the agents population if this worker resumes an agent
+   */
+  const initialPersonalBestSolutions = get(
+    resumeOptions,
+    "personalBestSolutions"
+  );
+  if (Array.isArray(initialPersonalBestSolutions)) {
+    agent.personalBestSolutions = initialPersonalBestSolutions.map(
+      toNativeSolution
+    );
+    logger.debug("rehydrated personal best", agent.personalBestSolutions);
+  }
+  const initialGlobalBestSolutions = get(resumeOptions, "globalBestSolutions");
+  if (Array.isArray(initialGlobalBestSolutions)) {
+    agent.globalBestSolutions = initialGlobalBestSolutions.map(
+      toNativeSolution
+    );
+    logger.debug("rehydrated global best", agent.globalBestSolutions);
+  }
+
   // Receive messages from the master process.
   process.on("message", msg => {
     config.logging.messages && logger.debug("received message", msg);
     if (msg.type === MESSAGE_TYPE.NEW_SOLUTION) {
       const { solution, workerId } = msg.payload;
       if (workerId !== cluster.worker.id) {
-        const nativeSolution = new agentaddon.Solution(
-          solution.permutation,
-          solution.quality
-        );
+        const nativeSolution = toNativeSolution(solution);
         const result = agent.addGlobalSolution(nativeSolution);
         logger.debug("result of newly added global solution", result);
       }
@@ -117,7 +160,10 @@ const workerMain = async ({
     }
   });
 
-  while (!shouldStop && solutionCount < solutionCountMax) {
+  while (
+    !shouldStop &&
+    (!solutionCountMax || solutionCount < solutionCountMax)
+  ) {
     // Worker needs time to recv messages and callbacks before executing native code again...
     await sleep(1);
     agent.createSolutions(100);
@@ -125,6 +171,11 @@ const workerMain = async ({
     reportCreatedSolutionsCount(solutionCount);
   }
   reportCreatedSolutionsCount(solutionCount);
+  reportAgentState(
+    solutionCount,
+    agent.personalBestSolutions,
+    agent.globalBestSolutions
+  );
   process.exit(0);
 };
 
