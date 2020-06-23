@@ -20,8 +20,8 @@ const getCreatedSolutions = createdWorkerSolutions =>
  * @param {number=} options.solutionCountTarget number of solutions to create before stopping workers and therefore agents
  * @param {boolean=} options.showProgressBar whether to show a progressbar, defaults to the value defined in the config
  * @param {string=""} options.addToProgressBar string to attach to the end of the progressbar
- * @param {function(Solution):void=} options.newSolutionCallback optional callback (Solution) => void, called if a worker reports a new solution
- * @param {function(Solution):void=} options.newBestSolutionCallback  optional callback (Solution) => void, called if a new best solution was found
+ * @param {function({ solution: Solution, workerId: number, createdSolutions: number }):void=} options.newSolutionCallback optional callback (Solution) => void, called if a worker reports a new solution
+ * @param {function({ solution: Solution, workerId: number, createdSolutions: number }):void=} options.newBestSolutionCallback  optional callback (Solution) => void, called if a new best solution was found
  */
 const main = async ({
   logger,
@@ -86,12 +86,12 @@ const main = async ({
       // broadcast new solutions to all workers
       broadcast(newMessage(MESSAGE_TYPE.NEW_SOLUTION, msg.payload));
       // call callback fn if supplied
-      newSolutionCallback && newSolutionCallback(msg.payload.solution);
+      newSolutionCallback && newSolutionCallback(msg.payload);
       // check whether this is the new global best
       if (!best || best.quality > msg.payload.solution.quality) {
         best = msg.payload.solution;
         // call callback fn if supplied with new global best
-        newBestSolutionCallback && newBestSolutionCallback(best);
+        newBestSolutionCallback && newBestSolutionCallback(msg.payload);
         logger.info("new best solution", {
           quality: best.quality,
           createdSolutions,

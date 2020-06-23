@@ -9,3 +9,6 @@ build/
 
 # vscode build artifacts
 .vscode/ipch
+
+# logs
+out/**

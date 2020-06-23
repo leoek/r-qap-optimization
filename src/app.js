@@ -1,5 +1,6 @@
 import cluster from "cluster";
 import { inspect } from "util";
+import fs from "fs";
 
 import sum from "lodash/sum";
 
@@ -59,6 +60,12 @@ const main = async () => {
   logger.info("native instance", inspect(instance, false, null));
 
   if (cluster.isMaster) {
+    const jsonLogWriteStream = fs.createWriteStream(
+      `out/${new Date().toISOString()}.jsonlog`,
+      { flags: "a" }
+    );
+    jsonLogWriteStream.write(JSON.stringify({ type: "instance", instance }));
+    jsonLogWriteStream.write("\n");
     let i = 0;
     const qualities = [];
     let overallCreatedSolutions = 0;
@@ -70,7 +77,18 @@ const main = async () => {
           logger,
           workerCount: agents,
           solutionCountTarget,
-          addToProgressBar: n > 1 ? `| ${i}/${n}` : ""
+          addToProgressBar: n > 1 ? `| ${i}/${n}` : "",
+          newSolutionCallback: ({ workerId, solution, createdSolutions }) => {
+            jsonLogWriteStream.write(
+              JSON.stringify({
+                type: "solution",
+                workerId,
+                solution,
+                createdSolutions
+              })
+            );
+            jsonLogWriteStream.write("\n");
+          }
         }
       );
       qualities.push(bestQuality);
@@ -102,6 +120,7 @@ const main = async () => {
         overallRuntime
       )}, ${overallCreatedSolutions}, ${overallBest.quality}, ${seed}`
     );
+    jsonLogWriteStream.end();
   } else if (cluster.isWorker) {
     const solutionCountTargetPerWorker = Math.ceil(
       solutionCountTarget / agents
