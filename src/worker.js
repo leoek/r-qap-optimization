@@ -106,9 +106,11 @@ const workerMain = async (
   const {
     maxPersonalBest,
     maxGlobalBest,
+    maxPersonalHistory,
     pBestPopulationWeight,
     gBestPopulationWeight,
-    rndWeight
+    rndWeight,
+    pHistoryWeight
   } = agentOptions;
 
   // Every worker process holds it's own agent
@@ -127,9 +129,11 @@ const workerMain = async (
     },
     maxPersonalBest,
     maxGlobalBest,
+    maxPersonalHistory,
     pBestPopulationWeight,
     gBestPopulationWeight,
-    rndWeight
+    rndWeight,
+    pHistoryWeight
   );
 
   /**

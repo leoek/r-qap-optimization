@@ -6,9 +6,11 @@ import { INSTANCE_TYPE } from "../config";
  * @typedef {object} agentOptions Configuration Options per agent
  * @property {number} agentOptions.maxPersonalBest int, size of personal population
  * @property {number} agentOptions.maxGlobalBest int, size of personal population
+ * @property {number} agentOptions.maxPersonalHistory int, size of the personal history population
  * @property {number} agentOptions.pBestPopulationWeight int
  * @property {number} agentOptions.gBestPopulationWeight int
  * @property {number} agentOptions.rndWeight int
+ * @property {number} agentOptions.pHistoryWeight int
  *
  * parameters type definition
  * @typedef {object} parameters
@@ -44,11 +46,15 @@ const indexParser = parameters => {
     } else if (i === 9) {
       parameters.agentOptions.maxGlobalBest = parseInt(val);
     } else if (i === 10) {
-      parameters.agentOptions.pBestPopulationWeight = parseInt(val);
+      parameters.agentOptions.maxPersonalHistory = parseInt(val);
     } else if (i === 11) {
-      parameters.agentOptions.gBestPopulationWeight = parseInt(val);
+      parameters.agentOptions.pBestPopulationWeight = parseInt(val);
     } else if (i === 12) {
+      parameters.agentOptions.gBestPopulationWeight = parseInt(val);
+    } else if (i === 13) {
       parameters.agentOptions.rndWeight = parseInt(val);
+    } else if (i === 14) {
+      parameters.agentOptions.pHistoryWeight = parseInt(val);
     }
   });
   return parameters;
@@ -100,15 +106,17 @@ export const getParametersFromArgs = () => {
   const parameters = {
     instanceName: "nug12",
     instanceType: INSTANCE_TYPE.QAP,
-    agents: 1,
-    solutionCountTarget: 1000,
+    agents: 10,
+    solutionCountTarget: 10000,
     n: 1,
     agentOptions: {
       maxPersonalBest: 10,
       maxGlobalBest: 10,
+      maxPersonalHistory: 0,
       pBestPopulationWeight: 10,
       gBestPopulationWeight: 10,
-      rndWeight: 1
+      rndWeight: 1,
+      pHistoryWeight: 0
     },
     seed: -1
   };

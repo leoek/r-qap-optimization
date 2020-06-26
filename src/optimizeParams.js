@@ -27,6 +27,9 @@ const paramSpace = {
     maxGlobalBest: Array(20)
       .fill(0)
       .map((_, i) => i + 1), // int, 1-20
+    maxPersonalHistory: Array(20)
+      .fill(0)
+      .map((_, i) => i + 1), // int, 1-20
     pBestPopulationWeight: Array(20)
       .fill(0)
       .map((_, i) => i + 1), // int, 1-20
@@ -34,6 +37,9 @@ const paramSpace = {
       .fill(0)
       .map((_, i) => i + 1), // int, 1-20
     rndWeight: Array(20)
+      .fill(0)
+      .map((_, i) => i + 1), // int, 1-20
+    pHistoryWeight: Array(20)
       .fill(0)
       .map((_, i) => i + 1) // int, 1-20
   }
@@ -98,6 +104,15 @@ const updatePopulationIgnoreDuplicates = (
   return false;
 };
 
+const updateHistory = (population, newSolution, maxPopulationSize) => {
+  if (maxPopulationSize > 0) {
+    population.unshift(newSolution);
+    if (population.length > maxPopulationSize) {
+      population.length = maxPopulationSize;
+    }
+  }
+};
+
 const main = async () => {
   const logLevels =
     (cluster.isMaster && config.logging.master) ||
@@ -139,11 +154,14 @@ const main = async () => {
     // one per worker
     const pBestSolutions = Array(agents).fill([]);
     const gBestSolutions = [];
-    const maxPersonalBest = 3;
-    const maxGlobalBest = 3;
+    const pHistorySolutions = Array(agents).fill([]);
+    const maxPersonalBest = 1;
+    const maxGlobalBest = 1;
+    const maxPersonalHistory = 1;
     const pBestPopulationWeight = 10;
     const gBestPopulationWeight = 10;
     const rndWeight = 1;
+    const pHistoryWeight = 10;
 
     // average the quality of the duplicates and sort the population again if duplicates are allowed
     const updatePopulation = skipDuplicateParameterSets
@@ -179,7 +197,10 @@ const main = async () => {
         while (selectedValue === null || selectedValue === undefined) {
           const selectorIndex = random(
             0,
-            rndWeight + pBestPopulationWeight + gBestPopulationWeight
+            rndWeight +
+              pBestPopulationWeight +
+              gBestPopulationWeight +
+              pHistoryWeight
           );
           if (selectorIndex <= rndWeight) {
             selectedValue = get(paramSpace, paramKey)[
@@ -192,9 +213,19 @@ const main = async () => {
               ]?.parameters,
               paramKey
             );
-          } else {
+          } else if (
+            selectorIndex <=
+            rndWeight + pBestPopulationWeight + gBestPopulationWeight
+          ) {
             selectedValue = get(
               gBestSolutions[random(0, gBestSolutions.length - 1)]?.parameters,
+              paramKey
+            );
+          } else {
+            selectedValue = get(
+              pHistorySolutions[workerIndex][
+                random(0, pHistorySolutions[workerIndex].length - 1)
+              ]?.parameters,
               paramKey
             );
           }
@@ -264,6 +295,11 @@ const main = async () => {
             progressBar.update(k * n + i, { agents, workerCount });
         }
         newSolution.quality = sum(qualities) / n;
+        updateHistory(
+          pBestSolutions[workerIndex],
+          newSolution,
+          maxPersonalHistory
+        );
         const didUpdatePBest = updatePopulation(
           pBestSolutions[workerIndex],
           newSolution,
@@ -300,9 +336,11 @@ const main = async () => {
           agents,
           maxPersonalBest,
           maxGlobalBest,
+          maxPersonalBest,
           pBestPopulationWeight,
           gBestPopulationWeight,
           rndWeight,
+          pHistoryWeight,
           best: gBestSolutions[0]
         },
         false,

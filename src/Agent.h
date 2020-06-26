@@ -49,6 +49,7 @@ public:
 
   std::vector<Solution*> globalBestSolutions;
   std::vector<Solution*> personalBestSolutions;
+  std::deque<Solution*> personalHistorySolutions;
 
   /**
    * Configurable Parameters for agents solution creation
@@ -57,9 +58,12 @@ public:
    */
   int maxGlobalBest = 10;
   int maxPersonalBest = 10;
+  int maxPersonalHistory = 0;
+
   int pBestPopulationWeight = 10;
   int gBestPopulationWeight = 10;
   int rndWeight = 1;
+  int pHistoryWeight = 0;
 
   void ReportNewBestSolution(Solution&);
   bool HandleNewSolution(Solution&);
@@ -68,6 +72,7 @@ public:
   int RateSolution(Solution&);
   bool UpdatePersonalPopulation(Solution&);
   bool UpdateGlobalPopulation(Solution&);
+  void UpdatePersonalHistoryPopulation(Solution&);
 
   Solution* CreateSolution();
   void CreateSolutions(int);

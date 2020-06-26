@@ -29,6 +29,7 @@ NAN_MODULE_INIT(Agent::Init) {
   Nan::SetAccessor(ctor->InstanceTemplate(), Nan::New("pBestPopulationWeight").ToLocalChecked(), Agent::HandleGetters, Agent::HandleSetters);
   Nan::SetAccessor(ctor->InstanceTemplate(), Nan::New("gBestPopulationWeight").ToLocalChecked(), Agent::HandleGetters, Agent::HandleSetters);
   Nan::SetAccessor(ctor->InstanceTemplate(), Nan::New("rndWeight").ToLocalChecked(), Agent::HandleGetters, Agent::HandleSetters);
+  Nan::SetAccessor(ctor->InstanceTemplate(), Nan::New("pHistoryWeight").ToLocalChecked(), Agent::HandleGetters, Agent::HandleSetters);
 
   // link functions
   Nan::SetPrototypeMethod(ctor, "addGlobalSolution", AddGlobalSolution);
@@ -50,9 +51,9 @@ NAN_METHOD(Agent::New) {
       "Agent::New - unexpected number of arguments, min these 6 need to be supplied: factoryArray, machineArray, flowMatrix, changeOverMatrix, distanceMatrix, newBestCallBack"
       ).ToLocalChecked());
   }
-  if(info.Length() > 11) {
+  if(info.Length() > 13) {
     return Nan::ThrowError(Nan::New(
-      "Agent::New - too many arguments supply these: factoryArray, machineArray, flowMatrix, changeOverMatrix, distanceMatrix, newBestCallBack, maxPersonalBest, maxGlobalBest, pBestPopulationWeight, gBestPopulationWeight, rndWeight"
+      "Agent::New - too many arguments supply these: factoryArray, machineArray, flowMatrix, changeOverMatrix, distanceMatrix, newBestCallBack, maxPersonalBest, maxGlobalBest, maxPersonalHistory, pBestPopulationWeight, gBestPopulationWeight, rndWeight, pHistoryWeight"
       ).ToLocalChecked());
   }
   // #NIT Arrays currently have no explicit type check
@@ -110,13 +111,19 @@ NAN_METHOD(Agent::New) {
     self->maxGlobalBest = info[7]->NumberValue();
   }
   if(info[8]->IsNumber()) {
-    self->pBestPopulationWeight = info[8]->NumberValue();
+    self->maxPersonalHistory = info[8]->NumberValue();
   }
   if(info[9]->IsNumber()) {
-    self->gBestPopulationWeight = info[9]->NumberValue();
+    self->pBestPopulationWeight = info[9]->NumberValue();
   }
   if(info[10]->IsNumber()) {
-    self->rndWeight = info[10]->NumberValue();
+    self->gBestPopulationWeight = info[10]->NumberValue();
+  }
+  if(info[11]->IsNumber()) {
+    self->rndWeight = info[11]->NumberValue();
+  }
+  if(info[12]->IsNumber()) {
+    self->pHistoryWeight = info[12]->NumberValue();
   }
   
   #ifdef DEBUG_OUTPUT
@@ -184,6 +191,8 @@ NAN_GETTER(Agent::HandleGetters) {
     info.GetReturnValue().Set(self->maxPersonalBest);
   } else if (propertyName == "rndWeight"){
     info.GetReturnValue().Set(self->rndWeight);
+  } else if (propertyName == "pHistoryWeight"){
+    info.GetReturnValue().Set(self->pHistoryWeight);
   } else {
     info.GetReturnValue().Set(Nan::Undefined());
   }
@@ -199,8 +208,8 @@ std::string Agent::ToString(){
     "[Agent] #machines: %i; maxMachineRedundancy: %i; #factories %i;",
     machines.size(), maxMachineRedundancy, factories.size());
   result += string_format(
-    " maxGlobalBest: %i; maxPersonalBest: %i; populationWeights(p,g,r): (%i,%i,%i)", 
-    maxGlobalBest, maxPersonalBest, pBestPopulationWeight, gBestPopulationWeight, rndWeight
+    " maxGlobalBest: %i; maxPersonalBest: %i; populationWeights(pbest,gbest,rnd, phist): (%i,%i,%i,%i)", 
+    maxGlobalBest, maxPersonalBest, pBestPopulationWeight, gBestPopulationWeight, rndWeight, pHistoryWeight
   );
   return result;
 }
@@ -226,7 +235,7 @@ int Agent::GetNextValue(int level, std::vector<int> prevSelections){
   random_selector<> selector{};
   // try until a new index is selected
   while (selected < 0){
-    int populationSelector = GetRndNumberFromRange(0, rndWeight + gBestPopulationWeight + pBestPopulationWeight);
+    int populationSelector = GetRndNumberFromRange(0, rndWeight + gBestPopulationWeight + pBestPopulationWeight + pHistoryWeight);
     if (populationSelector < rndWeight){
       // Select a random Factory from the available ones
       selected = selector(availableFactories);
@@ -239,6 +248,16 @@ int Agent::GetNextValue(int level, std::vector<int> prevSelections){
         possibleIndex = srcSol->permutation.at(currentMachineIndex).at(level);
       } else if (populationSelector < rndWeight + gBestPopulationWeight + pBestPopulationWeight && personalBestSolutions.size() >= 1){
         Solution * srcSol = selector(personalBestSolutions);
+        possibleIndex = srcSol->permutation.at(currentMachineIndex).at(level);
+      } else if (populationSelector < rndWeight + gBestPopulationWeight + pBestPopulationWeight + pHistoryWeight && personalHistorySolutions.size() >= 1){
+        Solution * srcSol = selector(personalHistorySolutions);
+        /*
+        printf("personal history\n");
+        for (unsigned int k = 0; k < personalHistorySolutions.size(); k++){
+          printf("%i %s \n", k, personalHistorySolutions.at(k)->ToString().c_str());
+        }
+        printf("\nSELECTED %s\n", srcSol->ToString().c_str());
+        */
         possibleIndex = srcSol->permutation.at(currentMachineIndex).at(level);
       }
       // Check whether there is a possible index which was copied from a previous Solution
@@ -401,6 +420,10 @@ void Agent::Solve(Solution &sol){
   for (unsigned int k = 0; k < personalBestSolutions.size(); k++){
     printf("%i %s \n", k, personalBestSolutions.at(k)->ToString().c_str());
   }
+  printf("\nsolve with personalHistorySolutions: \n");
+  for (unsigned int k = 0; k < personalHistorySolutions.size(); k++){
+    printf("%i %s \n", k, personalHistorySolutions.at(k)->ToString().c_str());
+  }
   #endif // DEBUG_OUTPUT
 
   int rLevel = 0;
@@ -514,6 +537,17 @@ bool Agent::UpdateGlobalPopulation(Solution &sol){
   return UpdatePopulation(globalBestSolutions, maxGlobalBest, sol);
 }
 
+void Agent::UpdatePersonalHistoryPopulation(Solution &inSol){
+  if (maxPersonalHistory > 0){
+    if (personalHistorySolutions.size() >= maxPersonalHistory){
+      delete personalHistorySolutions.back();
+      personalHistorySolutions.pop_back();
+    }
+    Solution* sol = new Solution(inSol);
+    personalHistorySolutions.push_front(sol);
+  }
+}
+
 void Agent::ReportNewBestSolution(Solution &sol){
   // Create new wrapped solution instance _sol
   Local<Object> _sol = CreateWrappedSolution(sol);
@@ -529,6 +563,7 @@ void Agent::ReportNewBestSolution(Solution &sol){
 }
 
 bool Agent::HandleNewSolution(Solution &sol){
+  UpdatePersonalHistoryPopulation(sol);
   const bool isInPersonalBest = UpdatePersonalPopulation(sol);
   if (isInPersonalBest){
       const bool isInLocalGlobalBest = UpdateGlobalPopulation(sol);
