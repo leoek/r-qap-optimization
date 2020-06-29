@@ -120,7 +120,14 @@ const main = async () => {
       ? config.logging.levels
       : [];
   const logger = createLogger({ logLevels });
-  const parameters = getParametersFromArgs();
+  // the other params are getting optimized
+  // const parameters = getParametersFromArgs();
+  const parameters = {
+    solutionCountTarget: 10000,
+    n: 100,
+    instanceType: INSTANCE_TYPE.QAP,
+    instanceName: "nug30"
+  };
   logger.info("Parameters", parameters);
   const { solutionCountTarget, n, instanceType, instanceName } = parameters;
 
@@ -148,7 +155,11 @@ const main = async () => {
   logger.info("native instance", inspect(instance, false, null));
 
   if (cluster.isMaster) {
-    const skipDuplicateParameterSets = false;
+    /**
+     * These are the parameters the optimizer will use
+     * to optimze the parameters
+     */
+    const skipDuplicateParameterSets = true;
     const maxIterations = 1000;
     const agents = 5;
     // one per worker
