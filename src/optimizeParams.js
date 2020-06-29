@@ -248,7 +248,7 @@ const main = async () => {
         "sol"
       );
       logger.log(
-        `k=${k}\nusing: ${solutionId}\nbest:  ${get(
+        `k=${k} (of ${maxIterations})\nusing: ${solutionId}\nbest:  ${get(
           gBestSolutions,
           "0.id"
         )} (${get(gBestSolutions, "0.quality")}, ${get(
@@ -257,13 +257,15 @@ const main = async () => {
         )})`
       );
       logger.debug("optimization population", {
-        personalPopulationLength: pBestSolutions.map(p => p.length),
-        globalPopulationLength: gBestSolutions.length
+        pHistorySolutions,
+        pBestSolutions,
+        gBestSolutions
       });
       if (
         skipDuplicateParameterSets &&
-        (pBestSolutions[workerIndex].find(sol => sol.id === id) ||
-          gBestSolutions.find(sol => sol.id === id))
+        (pHistorySolutions[workerIndex].find(sol => sol.id === solutionId) ||
+          pBestSolutions[workerIndex].find(sol => sol.id === solutionId) ||
+          gBestSolutions.find(sol => sol.id === solutionId))
       ) {
         // noop this is a duplicate and skipDuplicateParameterSets is true
         // k is not increaded in this case right now as the solution is omitted
@@ -307,7 +309,7 @@ const main = async () => {
         }
         newSolution.quality = sum(qualities) / n;
         updateHistory(
-          pBestSolutions[workerIndex],
+          pHistorySolutions[workerIndex],
           newSolution,
           maxPersonalHistory
         );
@@ -323,7 +325,7 @@ const main = async () => {
             maxGlobalBest
           );
           if (didUpdateGBest) {
-            logger.debug(
+            logger.log(
               "\nupdated global population\n",
               gBestSolutions.map(({ quality, found, parameters }) => ({
                 quality,
