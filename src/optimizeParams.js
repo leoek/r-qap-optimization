@@ -17,9 +17,10 @@ const qapParser = createQAPParser();
 const rqapParser = createRQAPParser();
 
 const paramSpace = {
-  agents: Array(18)
+  /*agents: Array(18)
     .fill(0)
-    .map((_, i) => i + 2), // int, 3-20
+    .map((_, i) => i + 2),*/ // int, 3-20
+  agents: [10],
   agentOptions: {
     maxPersonalBest: Array(20)
       .fill(0)
@@ -124,12 +125,16 @@ const main = async () => {
   // const parameters = getParametersFromArgs();
   const parameters = {
     solutionCountTarget: 10000,
-    n: 100,
     instanceType: INSTANCE_TYPE.QAP,
     instanceName: "nug30"
   };
+  // always evaluate parameters for this number of runs
+  const nMin = 10;
+  // if the avg is within percentageForNMax of the best so far, evaluate till this number of runs
+  const nMax = 100;
+  const percentageForNMax = 0.95;
   logger.info("Parameters", parameters);
-  const { solutionCountTarget, n, instanceType, instanceName } = parameters;
+  const { solutionCountTarget, instanceType, instanceName } = parameters;
 
   /**
    * @typedef nativeInstance
@@ -196,7 +201,7 @@ const main = async () => {
         )
       : null;
 
-    showProgressBar && progressBar.start(maxIterations * n, 0);
+    showProgressBar && progressBar.start(maxIterations * nMax, 0);
     let k = 0;
     while (k < maxIterations) {
       let workerIndex = k % agents;
@@ -253,8 +258,8 @@ const main = async () => {
           "0.id"
         )} (${get(gBestSolutions, "0.quality")}, ${get(
           gBestSolutions,
-          "0.found"
-        )})`
+          "0.n"
+        )}, ${get(gBestSolutions, "0.found")})`
       );
       logger.debug("optimization population", {
         pHistorySolutions,
@@ -274,7 +279,6 @@ const main = async () => {
           found: 1,
           parameters,
           quality: -1,
-          n,
           createdSolutions: 0,
           best: 0,
           runtime: 0,
@@ -285,7 +289,23 @@ const main = async () => {
         // test these parameters
         let i = 0;
         const qualities = [];
-        while (i++ < n) {
+        while (i < nMax) {
+          /**
+           * exit early if the current parameters solutionQuality avg is not within
+           * percentageForNMax after evaluating nMin times.
+           */
+          if (i >= nMin && i % nMin === 0 && gBestSolutions[0]?.quality) {
+            newSolution.quality = sum(qualities) / qualities.length;
+            const relativeToBest =
+              gBestSolutions[0]?.quality / newSolution.quality;
+            if (relativeToBest < percentageForNMax) {
+              logger.log(
+                `\nskipping remaining evalutations for ${newSolution.id} after ${i}/${nMax}
+(${gBestSolutions[0]?.quality} / ${newSolution.quality} = ${relativeToBest} < ${percentageForNMax})`
+              );
+              break;
+            }
+          }
           const {
             best,
             bestQuality,
@@ -305,9 +325,11 @@ const main = async () => {
           }
           newSolution.runtime += runtime;
           showProgressBar &&
-            progressBar.update(k * n + i, { agents, workerCount });
+            progressBar.update(k * nMax + i, { agents, workerCount });
+          i++;
         }
-        newSolution.quality = sum(qualities) / n;
+        newSolution.quality = sum(qualities) / qualities.length;
+        newSolution.n = i;
         updateHistory(
           pHistorySolutions[workerIndex],
           newSolution,
