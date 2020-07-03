@@ -129,9 +129,9 @@ const main = async () => {
     instanceName: "nug30"
   };
   // always evaluate parameters for this number of runs
-  const nMin = 10;
+  const nMin = 3;
   // if the avg is within percentageForNMax of the best so far, evaluate till this number of runs
-  const nMax = 100;
+  const nMax = 30;
   const percentageForNMax = 0.95;
   logger.info("Parameters", parameters);
   const { solutionCountTarget, instanceType, instanceName } = parameters;
