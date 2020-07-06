@@ -2,10 +2,10 @@ export * from "./constants";
 
 export default {
   logging: {
-    levels: ["error", "warn", "info", "debug"],
+    levels: ["error", "warn"],
     messages: false,
     master: false,
-    worker: false,
+    worker: true,
     progressbar: true
   }
 };

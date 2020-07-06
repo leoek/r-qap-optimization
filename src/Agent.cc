@@ -200,7 +200,16 @@ NAN_GETTER(Agent::HandleGetters) {
 
 NAN_SETTER(Agent::HandleSetters) {
   Agent* self = Nan::ObjectWrap::Unwrap<Agent>(info.This());
-  return Nan::ThrowError(Nan::New("Agent::Not implemented.").ToLocalChecked());
+  
+  std::string propertyName = std::string(*Nan::Utf8String(property));
+  if (propertyName == "rndWeight"){
+    if(!value->IsNumber()) {
+      return Nan::ThrowError(Nan::New("expected rndWeight to be a number").ToLocalChecked());
+    }
+    self->rndWeight = value->NumberValue();
+  } else {
+    return Nan::ThrowError(Nan::New("Agent::Not implemented.").ToLocalChecked());
+  }
 }
 
 std::string Agent::ToString(){

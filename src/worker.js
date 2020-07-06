@@ -64,7 +64,8 @@ const workerMain = async (
     instance,
     solutionCountMax: inSolutionCountMax,
     agentOptions: inAgentOptions = {},
-    batchSize = 100
+    batchSize: inBatchSize = 100,
+    randomizeAgentOptions: inRandomizeAgentOptions = false
   },
   inResumeOptions
 ) => {
@@ -85,6 +86,12 @@ const workerMain = async (
     inSolutionCountMax
   );
   const agentOptions = get(workerParams, "agentOptions", inAgentOptions);
+  const batchSize = get(workerParams, "batchSize", inBatchSize);
+  const randomizeAgentOptions = get(
+    workerParams,
+    "randomizeAgentOptions",
+    inRandomizeAgentOptions
+  );
   const resumeOptions = get(workerParams, "resumeOptions", inResumeOptions);
 
   /**
@@ -102,6 +109,15 @@ const workerMain = async (
     changeOverMatrix,
     distanceMatrix
   } = instance;
+
+  if (randomizeAgentOptions) {
+    Object.keys(agentOptions).forEach(key => {
+      agentOptions[key] = Math.round(
+        (Math.random() * (1.5 - 0.5) + 0.5) * agentOptions[key]
+      );
+    });
+    logger.log({ agentOptions });
+  }
 
   const {
     maxPersonalBest,

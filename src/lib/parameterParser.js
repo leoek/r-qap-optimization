@@ -118,6 +118,7 @@ export const getParametersFromArgs = () => {
       rndWeight: 1,
       pHistoryWeight: 3
     },
+    randomizeAgentOptions: true,
     seed: -1
   };
   // 0 and 1 are node and the js filename
