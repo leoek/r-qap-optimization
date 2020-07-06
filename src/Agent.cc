@@ -303,6 +303,22 @@ int Agent::GetFlowDistanceSum(std::vector<std::vector<int>> permutation){
 }
 
 /**
+ * returns the sum of the changeOverCost for the supplied failedFactories
+ */
+int Agent::GetChangeOverCost(std::vector<std::vector<int>> permutation, std::vector<int> failedFactories){
+  int coCostSum = 0;
+  for (unsigned int i = 0; i < permutation.size(); i++){
+    if (vectorContains(failedFactories, permutation[i][0])){
+      int alternativeFactoryIndex = getFirstNotInList(permutation[i], failedFactories);
+      if (alternativeFactoryIndex >= 0){
+        coCostSum += changeOverMatrix->GetValue(permutation[i][0], alternativeFactoryIndex);
+      }
+    }
+  }
+  return coCostSum;
+}
+
+/**
  * returns the flowDistanceSum if the factories with the indices from
  * failedFactories are failed.
  * returns -1 if there is no alternative with the provided permutation
@@ -360,12 +376,19 @@ double Agent::GetRelativeAltFlowDistance(
 }
 
 /**
- * iterates thorugh the factories and calculates how much the flowDistance quality gets
- * worse if that factory fails. The result is weighted according to the failureRate of
- * the factories.
- * Note that this considers only the event of a single factory failing.
- * TODO: Note that changeOverCosts are not added in here right now. 
- * @returns sum(Factories F, F_i-failure [0,1] * relAltFlowDistance [0,1] * referenceFlowDistance)
+ * Iterates through the factories and calculates how much the flowDistance quality gets
+ * worse if that factory fails (relative to the flowDistance without failure) and the change-
+ * over-cost which is introduced by the switch of the factory.
+ * Each result is weighted according to the failureRate of the factory.
+ * 
+ * Note that this considers only the event of a single factory failing
+ * 
+ * referenceFlowDistance: flowDistance without failure
+ * relAltFlowDistance: best (with failure eual flowDistance 0 -> 1 worst alternative not feasible (see GetRelativeAltFlowDistance)
+ * flowDistancePenalty: relAltFlowDistance [0,1] * referenceFlowDistance
+ * coCost: cost to switch from failed Factory f_i to alternative f_k
+ *
+ * @returns sum(Factories F, 0->n, F_i-failure [0,1] * (flowDistancePenalty + coCost))
  */
 double Agent::GetSingleFactoryFailureScore(
   int referenceFlowDistance,
@@ -377,13 +400,14 @@ double Agent::GetSingleFactoryFailureScore(
   for (unsigned int f_i = 0; f_i < factories.size(); f_i++){
     failedFactories[0] = f_i;
     double relAltFlowDistance = GetRelativeAltFlowDistance(referenceFlowDistance, permutation, failedFactories);
+    int coCost = GetChangeOverCost(permutation, failedFactories);
     #ifdef DEBUG_OUTPUT
-      std::string debugOutput = string_format("Factory %i, pFailure %f, relAltFlowDistance %f", f_i, factories[f_i]->pFailure, relAltFlowDistance);
+      std::string debugOutput = string_format("Factory %i, pFailure %f, relAltFlowDistance %f, coCost %i", f_i, factories[f_i]->pFailure, relAltFlowDistance, coCost);
       debugOutput = string_format("%s score %f", debugOutput.c_str(), score);
     #endif
-    score += factories[f_i]->pFailure * relAltFlowDistance * referenceFlowDistance;
+    score += factories[f_i]->pFailure * (relAltFlowDistance * referenceFlowDistance + coCost);
     #ifdef DEBUG_OUTPUT
-      printf("%s => %f\n",debugOutput.c_str(), score);
+      printf("%s => %f\n", debugOutput.c_str(), score);
     #endif
   }
   return score;

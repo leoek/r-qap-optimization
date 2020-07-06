@@ -30,6 +30,7 @@ private:
   int GetFlowDistanceSum(std::vector<std::vector<int>>);
   double GetFailureRiskSum(std::vector<std::vector<int>>);
   // alternative solutions (with failed factories)
+  int GetChangeOverCost(std::vector<std::vector<int>>, std::vector<int>);
   int GetAltFlowDistanceSum(std::vector<std::vector<int>>, std::vector<int>);
   double GetRelativeAltFlowDistance(
     int flowDistanceSumReference,
