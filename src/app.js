@@ -68,6 +68,7 @@ const main = async () => {
     jsonLogWriteStream.write("\n");
     let i = 0;
     const qualities = [];
+    const qualityComponents = [];
     let overallCreatedSolutions = 0;
     let overallBest = null;
     let overallRuntime = 0;
@@ -92,6 +93,11 @@ const main = async () => {
         }
       );
       qualities.push(bestQuality);
+      qualityComponents.push({
+        fd: best.flowDistanceSum,
+        risk: best.failureRiskSum,
+        fFailureScore: best.singleFactoryFailureScore
+      });
       overallCreatedSolutions += createdSolutions;
       if (!overallBest || best.quality < overallBest.quality) {
         overallBest = best;
@@ -103,6 +109,7 @@ const main = async () => {
       inspect(
         {
           qualities,
+          qualityComponents,
           n,
           overallCreatedSolutions,
           overallRuntime,
