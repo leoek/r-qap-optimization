@@ -34,7 +34,8 @@ const main = async () => {
     instanceName,
     agentOptions,
     seed,
-    randomizeAgentOptions
+    randomizeAgentOptions,
+    warmupSolutions
   } = parameters;
 
   /**
@@ -138,7 +139,8 @@ const main = async () => {
       instance,
       solutionCountMax: solutionCountTargetPerWorker,
       agentOptions,
-      randomizeAgentOptions
+      randomizeAgentOptions,
+      warmupSolutions
     });
   }
 };

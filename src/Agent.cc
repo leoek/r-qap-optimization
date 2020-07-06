@@ -202,11 +202,26 @@ NAN_SETTER(Agent::HandleSetters) {
   Agent* self = Nan::ObjectWrap::Unwrap<Agent>(info.This());
   
   std::string propertyName = std::string(*Nan::Utf8String(property));
-  if (propertyName == "rndWeight"){
+  if (propertyName == "pBestPopulationWeight"){
+    if(!value->IsNumber()) {
+      return Nan::ThrowError(Nan::New("expected pBestPopulationWeight to be a number").ToLocalChecked());
+    }
+    self->pBestPopulationWeight = value->NumberValue();
+  } else if (propertyName == "gBestPopulationWeight"){
+    if(!value->IsNumber()) {
+      return Nan::ThrowError(Nan::New("expected gBestPopulationWeight to be a number").ToLocalChecked());
+    }
+    self->gBestPopulationWeight = value->NumberValue();
+  } else if (propertyName == "rndWeight"){
     if(!value->IsNumber()) {
       return Nan::ThrowError(Nan::New("expected rndWeight to be a number").ToLocalChecked());
     }
     self->rndWeight = value->NumberValue();
+  } else if (propertyName == "pHistoryWeight"){
+    if(!value->IsNumber()) {
+      return Nan::ThrowError(Nan::New("expected pHistoryWeight to be a number").ToLocalChecked());
+    }
+    self->pHistoryWeight = value->NumberValue();
   } else {
     return Nan::ThrowError(Nan::New("Agent::Not implemented.").ToLocalChecked());
   }
