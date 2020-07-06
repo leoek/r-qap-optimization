@@ -328,6 +328,18 @@ int Agent::GetAltFlowDistanceSum(std::vector<std::vector<int>> permutation, std:
   return flowDistanceSum;
 }
 
+/**
+ * returns a number between 0 and 1 which represents the quality of 
+ * the alternative flowDistance with the failedFactories in relation
+ * to a referenceFlowDistance (ususally no failedFactories)
+ * lower values are better
+ * Examples:
+ * 0: the alternative flowDistance value with the failedFactories
+ *   is just as good or better as the referenceFlowDistance
+ * 0.5: the alt flowDistance was twice as much as the flowDistance
+ *   (the cost doubled due to the failedFactories, eg quality 1000 instead of 500)
+ * 1: there was is no alternative with the failedFactories
+ **/
 double Agent::GetRelativeAltFlowDistance(
   int referenceFlowDistance,
   std::vector<std::vector<int>> permutation,
@@ -347,6 +359,14 @@ double Agent::GetRelativeAltFlowDistance(
   return (double)(1 - (double)referenceFlowDistance/(double)altFlowDistanceSum);
 }
 
+/**
+ * iterates thorugh the factories and calculates how much the flowDistance quality gets
+ * worse if that factory fails. The result is weighted according to the failureRate of
+ * the factories.
+ * Note that this considers only the event of a single factory failing.
+ * TODO: Note that changeOverCosts are not added in here right now. 
+ * @returns sum(Factories F, F_i-failure [0,1] * relAltFlowDistance [0,1] * referenceFlowDistance)
+ */
 double Agent::GetSingleFactoryFailureScore(
   int referenceFlowDistance,
   std::vector<std::vector<int>> permutation
@@ -358,12 +378,12 @@ double Agent::GetSingleFactoryFailureScore(
     failedFactories[0] = f_i;
     double relAltFlowDistance = GetRelativeAltFlowDistance(referenceFlowDistance, permutation, failedFactories);
     #ifdef DEBUG_OUTPUT
-      printf("Factory %i, pFailure %f, relAltFlowDistance %f", f_i, factories[f_i]->pFailure, relAltFlowDistance);
-      printf(" score %f", score);
+      std::string debugOutput = string_format("Factory %i, pFailure %f, relAltFlowDistance %f", f_i, factories[f_i]->pFailure, relAltFlowDistance);
+      debugOutput = string_format("%s score %f", debugOutput.c_str(), score);
     #endif
     score += factories[f_i]->pFailure * relAltFlowDistance * referenceFlowDistance;
     #ifdef DEBUG_OUTPUT
-      printf(" => %f\n", score);
+      printf("%s => %f\n",debugOutput.c_str(), score);
     #endif
   }
   return score;
@@ -404,7 +424,7 @@ int Agent::RateSolution(Solution &sol){
     sol.quality = sol.flowDistanceSum * sol.failureRiskSum + sol.singleFactoryFailureScore;
   #endif // QAP_ONLY
   #ifdef DEBUG_OUTPUT
-  printf("RatedSolution %s\n", sol.ToString().c_str());
+  printf("\nRatedSolution %s\n", sol.ToString().c_str());
   #endif // DEBUG_OUTPUT
   return sol.quality;
 }
