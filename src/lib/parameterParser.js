@@ -108,7 +108,7 @@ export const getParametersFromArgs = () => {
     instanceType: INSTANCE_TYPE.RQAP,
     agents: 1,
     solutionCountTarget: 100,
-    qualityTarget: 0,
+    qualityTarget: 20,
     warmupSolutions: 100,
     n: 1,
     agentOptions: {

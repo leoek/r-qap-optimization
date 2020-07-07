@@ -123,6 +123,11 @@ const main = async ({
           }
           if (best.quality < qualityTarget) {
             broadcast(newMessage(MESSAGE_TYPE.STOP_SOLUTION_CREATION));
+            // in case some workers are just starting
+            setTimeout(
+              () => broadcast(newMessage(MESSAGE_TYPE.STOP_SOLUTION_CREATION)),
+              1000
+            );
           }
         }
       }
