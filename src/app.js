@@ -63,8 +63,11 @@ const main = async () => {
   logger.info("native instance", inspect(instance, false, null));
 
   if (cluster.isMaster) {
+    if (!fs.existsSync(config.outDir)) {
+      fs.mkdirSync(config.outDir);
+    }
     const jsonLogWriteStream = fs.createWriteStream(
-      `out/${new Date().toISOString()}.jsonlog`,
+      `${config.outDir}/${new Date().toISOString()}.jsonlog`,
       { flags: "a" }
     );
     jsonLogWriteStream.write(JSON.stringify({ type: "instance", instance }));

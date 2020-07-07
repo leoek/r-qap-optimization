@@ -47,7 +47,8 @@ const main = async ({
     progressMultiBar = new cliProgress.MultiBar(
       {
         clearOnComplete: false,
-        hideCursor: true,
+        hideCursor: false,
+        noTTYOutput: true,
         format: `{name} [{bar}] {percentage}% | ETA: {eta_formatted} ({eta}s) | {value}/{total} | {bestQuality} ${addToProgressBar}`
       },
       cliProgress.Presets.shades_classic

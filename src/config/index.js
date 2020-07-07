@@ -7,5 +7,6 @@ export default {
     master: false,
     worker: true,
     progressbar: true
-  }
+  },
+  outDir: "out"
 };
