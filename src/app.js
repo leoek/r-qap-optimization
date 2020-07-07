@@ -29,6 +29,7 @@ const main = async () => {
   const {
     agents,
     solutionCountTarget,
+    qualityTarget,
     n,
     instanceType,
     instanceName,
@@ -80,6 +81,7 @@ const main = async () => {
           logger,
           workerCount: agents,
           solutionCountTarget,
+          qualityTarget,
           addToProgressBar: n > 1 ? `| ${i}/${n}` : "",
           newSolutionCallback: ({ workerId, solution, createdSolutions }) => {
             jsonLogWriteStream.write(

@@ -27,6 +27,7 @@ const main = async ({
   logger,
   workerCount = 1,
   solutionCountTarget,
+  qualityTarget,
   showProgressBar = config.logging.progressbar,
   addToProgressBar = "",
   newSolutionCallback,
@@ -38,15 +39,23 @@ const main = async ({
   let createdSolutions = 0;
 
   // progress bar
-  const progressBar = showProgressBar
-    ? new cliProgress.SingleBar(
-        {
-          clearOnComplete: false,
-          format: `progress [{bar}] {percentage}% | ETA: {eta_formatted} ({eta}s) | {value}/{total} | {bestQuality} ${addToProgressBar}`
-        },
-        cliProgress.Presets.shades_classic
-      )
-    : null;
+  let progressMultiBar,
+    solutionCountProgressBar,
+    solutionQualityProgressBar,
+    firstSolutionQuality;
+  if (showProgressBar) {
+    progressMultiBar = new cliProgress.MultiBar(
+      {
+        clearOnComplete: false,
+        hideCursor: true,
+        format: `{name} [{bar}] {percentage}% | ETA: {eta_formatted} ({eta}s) | {value}/{total} | {bestQuality} ${addToProgressBar}`
+      },
+      cliProgress.Presets.shades_classic
+    );
+    solutionCountProgressBar = progressMultiBar.create(solutionCountTarget, 0, {
+      name: "solutionCount"
+    });
+  }
 
   // Will be called if all workers exited.
   let executionDoneCallback = () => undefined;
@@ -75,7 +84,7 @@ const main = async ({
         msg.payload.createdSolutions;
       createdSolutions = getCreatedSolutions(createdWorkerSolutions);
       showProgressBar &&
-        progressBar.update(createdSolutions, {
+        solutionCountProgressBar.update(createdSolutions, {
           bestQuality: best && best.quality
         });
       if (solutionCountTarget && createdSolutions > solutionCountTarget) {
@@ -97,6 +106,24 @@ const main = async ({
           createdSolutions,
           permutation: best.permutation
         });
+        if (qualityTarget) {
+          if (showProgressBar) {
+            if (!solutionQualityProgressBar) {
+              firstSolutionQuality = best.quality;
+              solutionQualityProgressBar = progressMultiBar.create(
+                firstSolutionQuality - qualityTarget,
+                0,
+                { name: "quality      ", bestQuality: qualityTarget }
+              );
+            }
+            solutionQualityProgressBar.update(
+              firstSolutionQuality - best.quality
+            );
+          }
+          if (best.quality < qualityTarget) {
+            broadcast(newMessage(MESSAGE_TYPE.STOP_SOLUTION_CREATION));
+          }
+        }
       }
     }
     if (msg.type === MESSAGE_TYPE.AGENT_STATE) {
@@ -106,8 +133,6 @@ const main = async ({
       );
     }
   };
-
-  showProgressBar && progressBar.start(solutionCountTarget, 0);
 
   const solutionCountTargetPerWorker = Math.ceil(
     solutionCountTarget / workerCount
@@ -151,7 +176,7 @@ const main = async ({
   logger.info("MASTER", "execution promise resolved");
 
   const end = performance.now();
-  showProgressBar && progressBar.stop();
+  showProgressBar && progressMultiBar.stop();
 
   // Result Output
   const runtime = end - start;
