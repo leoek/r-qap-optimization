@@ -66,7 +66,8 @@ const workerMain = async (
     agentOptions: inAgentOptions = {},
     batchSize: inBatchSize = 100,
     randomizeAgentOptions: inRandomizeAgentOptions = false,
-    warmupSolutions: inWarmupSolutions = 0
+    warmupSolutions: inWarmupSolutions = 0,
+    pResetAfterBatch: inPResetAfterBatch = 0
   },
   inResumeOptions
 ) => {
@@ -97,6 +98,11 @@ const workerMain = async (
     workerParams,
     "warmupSolutions",
     inWarmupSolutions
+  );
+  const pResetAfterBatch = get(
+    workerParams,
+    "pResetAfterBatch",
+    inPResetAfterBatch
   );
   const resumeOptions = get(workerParams, "resumeOptions", inResumeOptions);
 
@@ -215,6 +221,14 @@ const workerMain = async (
     agent.createSolutions(batchSize);
     solutionCount += batchSize;
     reportCreatedSolutionsCount(solutionCount);
+    if (pResetAfterBatch && Math.random() < pResetAfterBatch) {
+      agent.personalBestSolutions = [];
+      agent.pBestPopulationWeight = 0;
+      agent.gBestPopulationWeight = 0;
+      agent.createSolutions(batchSize);
+      agent.pBestPopulationWeight = pBestPopulationWeight;
+      agent.gBestPopulationWeight = gBestPopulationWeight;
+    }
   }
   reportCreatedSolutionsCount(solutionCount);
   reportAgentState(

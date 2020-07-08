@@ -121,6 +121,7 @@ export const getParametersFromArgs = () => {
       pHistoryWeight: 3
     },
     randomizeAgentOptions: true,
+    pResetAfterBatch: 0.1,
     seed: -1
   };
   // 0 and 1 are node and the js filename

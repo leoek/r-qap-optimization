@@ -222,6 +222,35 @@ NAN_SETTER(Agent::HandleSetters) {
       return Nan::ThrowError(Nan::New("expected pHistoryWeight to be a number").ToLocalChecked());
     }
     self->pHistoryWeight = value->NumberValue();
+  } else if (propertyName == "personalBestSolutions"){
+    if(!value->IsArray()) {
+      return Nan::ThrowError(Nan::New("expected personalBestSolutions to be an Array").ToLocalChecked());
+    }
+    Local<Array> jsArray = Local<Array>::Cast(value);
+    for (unsigned int i = 0; i < self->personalBestSolutions.size(); i++){
+      delete self->personalBestSolutions[i];
+    }
+    self->personalBestSolutions.clear();
+    for (unsigned int i = 0; i < jsArray->Length(); i++){
+      Handle<Value> val = jsArray->Get(i);
+      Solution* sol = Nan::ObjectWrap::Unwrap<Solution>(val->ToObject());
+      self->personalBestSolutions.push_back(sol);
+    }
+  } else if (propertyName == "globalBestSolutions"){
+    if(!value->IsArray()) {
+      return Nan::ThrowError(Nan::New("expected globalBestSolutions to be an Array").ToLocalChecked());
+    }
+    Local<Array> jsArray = Local<Array>::Cast(value);
+    for (unsigned int i = 0; i < self->globalBestSolutions.size(); i++){
+      delete self->globalBestSolutions[i];
+    }
+    self->globalBestSolutions.clear();
+    for (unsigned int i = 0; i < jsArray->Length(); i++){
+      Handle<Value> val = jsArray->Get(i);
+      Solution* sol = Nan::ObjectWrap::Unwrap<Solution>(val->ToObject());
+      self->globalBestSolutions.push_back(sol);
+    }
+    printf("\n\nAgent clear gBest %s\n\n", self->ToString().c_str());
   } else {
     return Nan::ThrowError(Nan::New("Agent::Not implemented.").ToLocalChecked());
   }

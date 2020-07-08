@@ -36,7 +36,8 @@ const main = async () => {
     agentOptions,
     seed,
     randomizeAgentOptions,
-    warmupSolutions
+    warmupSolutions,
+    pResetAfterBatch
   } = parameters;
 
   /**
@@ -145,7 +146,8 @@ const main = async () => {
       solutionCountMax: solutionCountTargetPerWorker,
       agentOptions,
       randomizeAgentOptions,
-      warmupSolutions
+      warmupSolutions,
+      pResetAfterBatch
     });
   }
 };
