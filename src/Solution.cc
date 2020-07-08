@@ -89,17 +89,24 @@ NAN_METHOD(Solution::_GetLength) {
 }
 
 bool Solution::Set(int machineIndex, int level, int value){
-  if (machineIndex == permutation.size()){
-    Add(value);
+  /**
+   * increase the permutation size accordingly
+   * (values might be added out of order - eg machine 5 before 3)
+   */
+  while(machineIndex >= permutation.size()){
+    vector<int> inner;
+    permutation.push_back(inner);
+  }
+  /**
+   * it is expected that levels are added in order
+   * --> level 3 cannot be set if there is no level 2 yet
+   */
+  if (level == permutation[machineIndex].size()){
+    permutation.at(machineIndex).push_back(value);
     return true;
-  } else if (machineIndex < permutation.size()){
-    if (level == permutation[machineIndex].size()){
-      Add(machineIndex, value);
-      return true;
-    } else if (level < permutation[machineIndex].size()){
-      permutation[machineIndex][level] = value;
-      return true;
-    }
+  } else {
+    permutation[machineIndex][level] = value;
+    return true;
   }
   printf("Invalid Solution: this shouldn't happen! machineIndex: %i, Level: %i \nSolution: %s\n", machineIndex, level, ToString().c_str());
   return false;

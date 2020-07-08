@@ -238,7 +238,7 @@ std::string Agent::ToString(){
   return result;
 }
 
-int Agent::GetNextValue(int level, std::vector<int> prevSelections){
+int Agent::GetNextValue(int currentMachineIndex, int level, std::vector<int> prevSelections){
   Machine * currentMachine = machines.at(currentMachineIndex);
   // #PERFORMANCE
   // check the capacity requirement after selecting randomly
@@ -302,9 +302,9 @@ int Agent::GetNextValue(int level, std::vector<int> prevSelections){
   return selected;
 }
 
-int Agent::GetNextValue(){
+int Agent::GetNextValue(int currentMachineIndex){
   std::vector<int> empty;
-  return GetNextValue(0, empty);
+  return GetNextValue(currentMachineIndex, 0, empty);
 }
 
 void Agent::ResetFactories(){
@@ -494,12 +494,24 @@ void Agent::Solve(Solution &sol){
   }
   #endif // DEBUG_OUTPUT
 
+  // array of the machineIndices which need to be assigned a value for a solution
+  int machineIndices[machines.size()];
+  int i;
+  for (i = 0; i < machines.size(); ++i){
+    machineIndices[i] = i;
+  }
+  /**
+   * randomize the order of the machineIndices to avoid a bias because of less
+   * and less assignable factories during the solution creation.
+   */
+  #ifdef RANDOMIZE_SOLUTION_CREATION_ORDER
+  std::random_shuffle(&machineIndices[0], &machineIndices[machines.size()]);
+  #endif // RANDOMIZE_SOLUTION_CREATION_ORDER
+
   int rLevel = 0;
   // Creates the first permutation (which selects a factory for each machine)
-  currentMachineIndex = 0;
-  while(currentMachineIndex < machines.size()){
-    sol.Set(currentMachineIndex, rLevel, GetNextValue());
-    currentMachineIndex++;
+  for (i = 0; i < machines.size(); ++i){
+    sol.Set(machineIndices[i], rLevel, GetNextValue(machineIndices[i]));
   }
   /**
    * Creates the additional "permutations" to satisfy the redundancy requirement
@@ -509,14 +521,13 @@ void Agent::Solve(Solution &sol){
   #ifndef QAP_ONLY
   rLevel++;
   while(rLevel < maxMachineRedundancy){
-    currentMachineIndex = 0;
-    while(currentMachineIndex < machines.size()){
+    for (i = 0; i < machines.size(); ++i){
+      int currentMachineIndex = machineIndices[i];
       if (rLevel < machines[currentMachineIndex]->redundancy){
-        int nextVal = GetNextValue(rLevel, sol.permutation[currentMachineIndex]);
+        int nextVal = GetNextValue(currentMachineIndex, rLevel, sol.permutation[currentMachineIndex]);
         int prevVal = sol.permutation[currentMachineIndex][rLevel - 1];
         sol.Set(currentMachineIndex, rLevel, nextVal);
       }
-      currentMachineIndex++;
     }
     rLevel++;
   }

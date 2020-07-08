@@ -5,6 +5,7 @@
 //#define DEBUG_OUTPUT
 //#define QAP_ONLY
 #define IGNORE_DUPLICATE_SOLUTIONS
+#define RANDOMIZE_SOLUTION_CREATION_ORDER
 
 #include <nan.h>
 #include "Solution.h"
@@ -19,11 +20,10 @@ class Agent : public Nan::ObjectWrap {
 private:
   // This is extracted from the supplied machines,1 is just the default
   int maxMachineRedundancy = 1;
-  int currentMachineIndex = 0;
 
   // Creating Solutions
-  int GetNextValue(int, std::vector<int>);
-  int GetNextValue();
+  int GetNextValue(int currentMachineIndex, int, std::vector<int>);
+  int GetNextValue(int currentMachineIndex);
   void ResetFactories();
 
   // Rating Solutions

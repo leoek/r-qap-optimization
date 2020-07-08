@@ -135,7 +135,7 @@ NAN_METHOD(Factory::_UseCapacity) {
   Factory * self = Nan::ObjectWrap::Unwrap<Factory>(info.This());
 
   if(!info[0]->IsNumber()) {
-    return Nan::ThrowError(Nan::New("Solution::Add - expected argument 0 to be an integer").ToLocalChecked());
+    return Nan::ThrowError(Nan::New("Factory::UseCapacity - expected argument 0 to be an integer").ToLocalChecked());
   }
 
   int use = info[0]->IntegerValue();
