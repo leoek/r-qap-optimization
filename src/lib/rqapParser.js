@@ -1,3 +1,4 @@
+import "./typedefs";
 import { ERROR } from "../config";
 import { objectValues, newMatrix, compose, asyncCompose } from "../helpers";
 import createParser, { toNativeInstance } from "./parser";
@@ -6,33 +7,16 @@ const PARSE_MODE = {
   FACTORY: "factory",
   MACHINE: "machine",
   FLOW: "flow",
-  CHANGEOVER_COST: "changeover"
+  CHANGEOVER_COST: "changeover",
+  DISTANCE: "distance"
 };
 
 const modes = objectValues(PARSE_MODE);
 
 /**
- * Js factory type definition
- * @typedef {object} jsFactory
- * @property {number} jsFactory.id
- * @property {number} jsFactory.probability
- * @property {number} jsFactory.capacity
- * @property {number} jsFactory.x
- * @property {number} jsFactory.y
- */
-
-/**
- * @typedef {object} qapContent
- * @property {object} factories object containing jsFactories
- * @property {object} machines object containing jsMachines
- * @property {array} flowMatrix 2-dimensional matrix array
- * @property {array} changeOverMatrix 2-dimensional matrix array
- */
-
-/**
  *
  * @param {string} content File content
- * @returns {qapContent}
+ * @returns {instance}
  */
 
 const parseRQAPContent = content => {
@@ -40,7 +24,7 @@ const parseRQAPContent = content => {
   let modeIndex = 0;
   const factories = {};
   const machines = {};
-  let flowMatrix, changeOverMatrix, flow_i, co_i;
+  let flowMatrix, changeOverMatrix, distanceMatrix, flow_i, co_i, distance_i;
   // id	Ausfallwahrscheinlichkeit p_i (float)	Kapazität c_i (int)	x-Koordinate x_i (int)	y-Koordinate y_i (int)
   const factoryMatcher = new RegExp(
     "([0-9]+) ([0-9.]+) ([0-9]+) ([0-9]+) ([0-9]+)"
@@ -99,6 +83,17 @@ const parseRQAPContent = content => {
         changeOverMatrix[co_i][j] = value;
       });
       co_i += 1;
+    } else if (modes[modeIndex] === PARSE_MODE.DISTANCE) {
+      if (!distanceMatrix) {
+        const k = objectValues(factories).length;
+        distanceMatrix = newMatrix(k, k);
+        distance_i = 0;
+      }
+      const lineValues = line.split(" ");
+      lineValues.forEach((value, j) => {
+        distanceMatrix[distance_i][j] = value;
+      });
+      distance_i += 1;
     }
     line = lines.shift();
   }
@@ -106,21 +101,29 @@ const parseRQAPContent = content => {
     factories,
     machines,
     flowMatrix,
-    changeOverMatrix
+    changeOverMatrix,
+    distanceMatrix
   };
 };
 
 const calculateDistance = (a, b) =>
   Math.round(Math.sqrt(Math.pow(b.x - a.x, 2) + Math.pow(b.y - a.y, 2)));
+
 const calculateDistanceMatrix = factories =>
   Object.keys(factories).map(idA =>
     Object.keys(factories).map(idB =>
       calculateDistance(factories[idA], factories[idB])
     )
   );
-const enhanceWithDistanceMatrix = ({ factories, ...rest }) => ({
+
+/**
+ * add distanceMatrix to instance if not present
+ * @param {instance} instance with or without distanceMatrix
+ * @returns {instance}
+ */
+const enhanceWithDistanceMatrix = ({ factories, distanceMatrix, ...rest }) => ({
   factories,
-  distanceMatrix: calculateDistanceMatrix(factories),
+  distanceMatrix: distanceMatrix || calculateDistanceMatrix(factories),
   ...rest
 });
 

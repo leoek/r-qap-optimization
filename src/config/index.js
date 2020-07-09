@@ -8,5 +8,6 @@ export default {
     worker: true,
     progressbar: true
   },
-  outDir: "out"
+  outDir: "out",
+  convertedInstancesDir: "problems"
 };
