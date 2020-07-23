@@ -41,6 +41,17 @@ Angelehnt an [QAPLib](http://anjos.mgi.polymtl.ca/qaplib/)
 | ...| ... | ... | ...  | ...
 | k  | c_k0 | c_k1 | ... | c_kk
 
+## Distance Matrix (int, k x k)
+
+optional if theere are coordinates for each factory.
+
+|   | 0  | 1 | ... | k |
+|----|---|---|---|---|
+| 0  | c_00 | c_01 | ... | c_0k
+| 1  | c_10 | c_11 | ... | c_1k
+| ...| ... | ... | ...  | ...
+| k  | c_k0 | c_k1 | ... | c_kk
+
 # Mini Example
 
 2 Fabriken, 3 Maschinen
