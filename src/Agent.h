@@ -4,7 +4,17 @@
 
 //#define DEBUG_OUTPUT
 //#define QAP_ONLY
-#define IGNORE_DUPLICATE_SOLUTIONS
+
+// ignore solution from history
+#define IGNORE_DUPLICATE_SOLUTIONS_IN_HISTORY
+// ignore solution from populations
+#define IGNORE_DUPLICATE_SOLUTIONS_IN_POPULATIONS
+/**
+ * skip solutions which are in the history or population completely
+ * --> these wont be even rated
+ */
+#define SKIP_DUPLICATE_SOLUTIONS
+// randomize the order in which machines are assigned a factory
 #define RANDOMIZE_SOLUTION_CREATION_ORDER
 
 #include <nan.h>
@@ -73,7 +83,7 @@ public:
   int RateSolution(Solution&);
   bool UpdatePersonalPopulation(Solution&);
   bool UpdateGlobalPopulation(Solution&);
-  void UpdatePersonalHistoryPopulation(Solution&);
+  bool UpdatePersonalHistoryPopulation(Solution&);
 
   Solution* CreateSolution();
   void CreateSolutions(int);

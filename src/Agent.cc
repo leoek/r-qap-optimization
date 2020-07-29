@@ -587,15 +587,12 @@ bool UpdatePopulation(std::vector<Solution*> &population, int populationSize, So
   if (population.size() >= populationSize && inSol.quality > population[populationSize - 1]->quality){
     return false;
   }
-  #ifdef IGNORE_DUPLICATE_SOLUTIONS
+  #ifdef IGNORE_DUPLICATE_SOLUTIONS_IN_POPULATIONS
   // check that the solution is not a duplicate
-  for (unsigned int i = 0; i < population.size(); i++){
-    if (inSol.permutation == population[i]->permutation){
-      // This solution is already part of the population
-      return false;
-    }
+  if (containsSolution(population, inSol)){
+    return false;
   }
-  #endif //IGNORE_DUPLICATE_SOLUTIONS
+  #endif //IGNORE_DUPLICATE_SOLUTIONS_IN_POPULATIONS
   /**
    * Iterate through the population starting with the worts solution in the population.
    * Usually the loop is exited after the first check, because the new solution is worse
@@ -645,7 +642,13 @@ bool Agent::UpdateGlobalPopulation(Solution &sol){
   return UpdatePopulation(globalBestSolutions, maxGlobalBest, sol);
 }
 
-void Agent::UpdatePersonalHistoryPopulation(Solution &inSol){
+bool Agent::UpdatePersonalHistoryPopulation(Solution &inSol){
+  #ifdef IGNORE_DUPLICATE_SOLUTIONS_IN_HISTORY
+  // check that the solution is not a duplicate
+  if (containsSolution(personalHistorySolutions, inSol)){
+    return false;
+  }
+  #endif //IGNORE_DUPLICATE_SOLUTIONS_IN_HISTORY
   if (maxPersonalHistory > 0){
     if (personalHistorySolutions.size() >= maxPersonalHistory){
       delete personalHistorySolutions.back();
@@ -654,6 +657,7 @@ void Agent::UpdatePersonalHistoryPopulation(Solution &inSol){
     Solution* sol = new Solution(inSol);
     personalHistorySolutions.push_front(sol);
   }
+  return true;
 }
 
 void Agent::ReportNewBestSolution(Solution &sol){
@@ -683,8 +687,25 @@ bool Agent::HandleNewSolution(Solution &sol){
 }
 
 Solution* Agent::CreateSolution(){
-  Solution* sol = new Solution();
-  Solve(*sol);
+  Solution* sol;
+  #ifdef SKIP_DUPLICATE_SOLUTIONS
+  bool flag = true;
+  while(flag){
+    #endif // SKIP_DUPLICATE_SOLUTIONS
+    sol = new Solution();
+    Solve(*sol);
+    #ifdef SKIP_DUPLICATE_SOLUTIONS
+    if (
+      containsSolution(personalHistorySolutions, *sol) ||
+      containsSolution(personalBestSolutions, *sol) ||
+      containsSolution(globalBestSolutions, *sol)
+    ) {
+      delete sol;
+    } else {
+      flag = false;
+    }
+  }
+  #endif // SKIP_DUPLICATE_SOLUTIONS
   RateSolution(*sol);
   HandleNewSolution(*sol);
   return sol;

@@ -1,6 +1,4 @@
-#include <iostream>
-#include <random>
-#include <algorithm>
+#include "helperFunctions.h"
 
 int GetRndNumberFromRange(int start, int end){
     std::random_device rd; // obtain a random number from hardware
@@ -22,4 +20,21 @@ int getFirstNotInList(std::vector<int> input, std::vector<int> filter){
         i++;
     }
     return -1;
+}
+
+bool containsSolution(std::vector<Solution*> &population, Solution &sol){
+    for (unsigned int i = 0; i < population.size(); i++){
+        if (sol.permutation == population[i]->permutation){
+            return true;
+        }
+    }
+    return false;
+}
+bool containsSolution(std::deque<Solution*> &population, Solution &sol){
+    for (unsigned int i = 0; i < population.size(); i++){
+        if (sol.permutation == population[i]->permutation){
+            return true;
+        }
+    }
+    return false;
 }
