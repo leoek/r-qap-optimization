@@ -1,6 +1,8 @@
 #FROM node:12.10.0-stretch
 #FROM node:6.7.0
-FROM node:8.16.1-jessie as base
+#FROM node:8.16.1-jessie as base
+
+FROM node:8.16.2-stretch-slim as base
 
 ARG uid=1000
 ARG gid=1000
