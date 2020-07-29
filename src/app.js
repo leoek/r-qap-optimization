@@ -71,6 +71,8 @@ const main = async () => {
       `${config.outDir}/${new Date().toISOString()}.jsonlog`,
       { flags: "a" }
     );
+    jsonLogWriteStream.write(JSON.stringify({ type: "parameters", parameters }));
+    jsonLogWriteStream.write("\n");
     jsonLogWriteStream.write(JSON.stringify({ type: "instance", instance }));
     jsonLogWriteStream.write("\n");
     let i = 0;
