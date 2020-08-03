@@ -28,7 +28,7 @@ solutionCountTarget <- 10000
 # append all args except the path to the instance
 combinedArgs <- paste(args[-1], collapse = " ")
 combinedArgsForPath <- paste(args[-1], collapse = "_")
-outputFileName <- paste("outputForIrace", combinedArgsForPath, sep="_")
+outputFileName <- paste("outputForIrace", instanceName, combinedArgsForPath, sep="_")
 
 outDirMount <- paste(getwd(),"/output:/usr/src/app/out:rw", sep = "")
 
