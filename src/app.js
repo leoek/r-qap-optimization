@@ -37,7 +37,8 @@ const main = async () => {
     seed,
     randomizeAgentOptions,
     warmupSolutions,
-    pResetAfterBatch
+    pResetAfterBatch,
+    iraceOutputFileName
   } = parameters;
 
   /**
@@ -114,6 +115,7 @@ const main = async () => {
       }
       overallRuntime += runtime;
     }
+    jsonLogWriteStream.end();
     logger.log(
       "overall result:\n",
       inspect(
@@ -137,7 +139,14 @@ const main = async () => {
         overallRuntime
       )}, ${overallCreatedSolutions}, ${overallBest.quality}, ${seed}`
     );
-    jsonLogWriteStream.end();
+    // irace result
+    const iraceResult = `${overallBest.quality} ${Math.floor(overallRuntime)}`;
+    logger.log(`Result for Irace: ${iraceResult}`);
+    if (iraceOutputFileName) {
+      fs.writeFileSync(`${config.outDir}/${iraceOutputFileName}`, iraceResult, {
+        encoding: "utf8"
+      });
+    }
   } else if (cluster.isWorker) {
     const solutionCountTargetPerWorker = Math.ceil(
       solutionCountTarget / agents

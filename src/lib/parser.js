@@ -49,7 +49,9 @@ export const createParser = ({
       : resolvePath(
           basePath,
           "problems",
-          `${name}${fileExtension ? "." : ""}${fileExtension}`
+          fileExtension && !name.includes(fileExtension)
+            ? `${name}.${fileExtension}`
+            : name
         );
     return new Promise((resolve, reject) => {
       readFile(fullPath)

@@ -24,6 +24,64 @@ import { INSTANCE_TYPE } from "../config";
  */
 
 /**
+ * parses a string value to the correct type and sets it in paramters
+ * This mutatates parameters!
+ * @param {parameters} parameters
+ * @param {string} path
+ * @param {string} val
+ * @returns {parameters}
+ */
+const setParameter = (parameters, path, val) => {
+  if (path === "randomizeAgentOptions") {
+    set(parameters, path, !!parseInt(val));
+  } else if (
+    ["instanceName", "instanceType", "iraceOutputFileName"].includes(path)
+  ) {
+    set(parameters, path, val);
+  } else {
+    set(parameters, path, parseInt(val));
+  }
+};
+
+/**
+ * @returns {parameters}
+ */
+export const getParametersFromArgs = () => {
+  /**
+   * @type parameters
+   */
+  const parameters = {
+    instanceName: "nug12a",
+    instanceType: INSTANCE_TYPE.RQAP,
+    agents: 1,
+    solutionCountTarget: 100,
+    qualityTarget: 20,
+    warmupSolutions: 100,
+    n: 1,
+    agentOptions: {
+      maxPersonalBest: 3,
+      maxGlobalBest: 3,
+      maxPersonalHistory: 1,
+      pBestPopulationWeight: 10,
+      gBestPopulationWeight: 10,
+      rndWeight: 1,
+      pHistoryWeight: 3
+    },
+    randomizeAgentOptions: true,
+    pResetAfterBatch: 0,
+    seed: -1,
+    iraceOutputFileName: undefined
+  };
+  // 0 and 1 are node and the js filename
+  if (process.argv[2] === "paramils") {
+    return paramilsParser(parameters);
+  } else if (process.argv[2] === "index") {
+    return indexParser(parameters);
+  }
+  return defaultParser(parameters);
+};
+
+/**
  * accepts ordered parameters
  * @param {parameters} parameters
  * @returns {parameters}
@@ -89,7 +147,7 @@ const paramilsParser = parameters => {
     ) {
       lastParamPath = `agentOptions.${val.substr(1)}`;
     } else if (lastParamPath) {
-      set(parameters, lastParamPath, parseInt(val));
+      setParameter(parameters, lastParamPath, val);
       lastParamPath = null;
     }
   });
@@ -97,38 +155,35 @@ const paramilsParser = parameters => {
 };
 
 /**
+ * accepts parameters in the format used by paramils
+ * @param {parameters} parameters
  * @returns {parameters}
  */
-export const getParametersFromArgs = () => {
-  /**
-   * @type parameters
-   */
-  const parameters = {
-    instanceName: "nug12a",
-    instanceType: INSTANCE_TYPE.RQAP,
-    agents: 1,
-    solutionCountTarget: 100,
-    qualityTarget: 20,
-    warmupSolutions: 100,
-    n: 1,
-    agentOptions: {
-      maxPersonalBest: 3,
-      maxGlobalBest: 3,
-      maxPersonalHistory: 1,
-      pBestPopulationWeight: 10,
-      gBestPopulationWeight: 10,
-      rndWeight: 1,
-      pHistoryWeight: 3
-    },
-    randomizeAgentOptions: true,
-    pResetAfterBatch: 0.1,
-    seed: -1
-  };
-  // 0 and 1 are node and the js filename
-  if (process.argv[2] === "paramils") {
-    return paramilsParser(parameters);
-  }
-  return indexParser(parameters);
+const defaultParser = parameters => {
+  const paramNames = Object.keys(parameters);
+  const agentOptionParamNames = Object.keys(parameters.agentOptions);
+  let lastParamPath;
+  process.argv.forEach((val, i) => {
+    // 0 and 1 are node and the js filename
+    if (i === 3) {
+      parameters.instanceName = val;
+    } else if (i === 4) {
+      parameters.instanceType = val;
+    } else if (i >= 5) {
+      if (val.startsWith("--") && paramNames.includes(val.substr(2))) {
+        lastParamPath = val.substr(2);
+      } else if (
+        val.startsWith("--") &&
+        agentOptionParamNames.includes(val.substr(2))
+      ) {
+        lastParamPath = `agentOptions.${val.substr(2)}`;
+      } else if (lastParamPath) {
+        setParameter(parameters, lastParamPath, val);
+        lastParamPath = null;
+      }
+    }
+  });
+  return parameters;
 };
 
 export default getParametersFromArgs;
