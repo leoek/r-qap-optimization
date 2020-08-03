@@ -1,0 +1,10 @@
+
+# ignore output directories content
+std/*.stdout
+std/*.stderr
+
+output/*
+!output/.gitkeep 
+
+# results
+iraceResults.Rdata
