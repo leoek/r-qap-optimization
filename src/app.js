@@ -72,7 +72,9 @@ const main = async () => {
       `${config.outDir}/${new Date().toISOString()}.jsonlog`,
       { flags: "a" }
     );
-    jsonLogWriteStream.write(JSON.stringify({ type: "parameters", parameters }));
+    jsonLogWriteStream.write(
+      JSON.stringify({ type: "parameters", parameters })
+    );
     jsonLogWriteStream.write("\n");
     jsonLogWriteStream.write(JSON.stringify({ type: "instance", instance }));
     jsonLogWriteStream.write("\n");
@@ -143,9 +145,13 @@ const main = async () => {
     const iraceResult = `${overallBest.quality} ${Math.floor(overallRuntime)}`;
     logger.log(`Result for Irace: ${iraceResult}`);
     if (iraceOutputFileName) {
-      fs.writeFileSync(`${config.outDir}/${iraceOutputFileName}`, iraceResult, {
-        encoding: "utf8"
-      });
+      fs.writeFileSync(
+        `${config.outDir}/${iraceOutputFileName}`,
+        `${iraceResult}\n`,
+        {
+          encoding: "utf8"
+        }
+      );
     }
   } else if (cluster.isWorker) {
     const solutionCountTargetPerWorker = Math.ceil(
