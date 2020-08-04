@@ -31,9 +31,10 @@ combinedArgsForPath <- paste(args[-1], collapse = "_")
 outputFileName <- paste("outputForIrace", instanceName, combinedArgsForPath, sep="_")
 
 outDirMount <- paste(getwd(),"/output:/usr/src/app/out:rw", sep = "")
+instancesDirMount <- paste(getwd(),"/instances:/usr/src/app/problems:ro", sep = "")
 
 # Den String-Befehl zum Starten des Algorithmus mit Parametern zusammensetzen
-combinedString <- paste("docker run --rm -v", outDirMount, "registry.leoek.tech/rqap:current serve:node irace", instanceName, "RQAP --qualityTarget 0 --agents", agents, "--solutionCountTarget", solutionCountTarget, "--iraceOutputFileName", outputFileName, combinedArgs, sep=" ")
+combinedString <- paste("docker run --rm -v", outDirMount, "-v", instancesDirMount, "registry.leoek.tech/rqap:current serve:node irace", instanceName, "RQAP --qualityTarget 0 --agents", agents, "--solutionCountTarget", solutionCountTarget, "--iraceOutputFileName", outputFileName, combinedArgs, sep=" ")
 print(combinedString)
 
 #startTime <- Sys.time()
