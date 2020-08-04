@@ -16,3 +16,22 @@ docker-dev-build:
 
 start: docker-dev-build
 	docker run --rm -it --name rqapdev -v ${PWD}/src:/user/src/app/src -v ${PWD}/problems:/usr/src/app/problems rqapdev
+
+docker-irace-build: 
+	docker build --tag registry.leoek.tech/rqapirace:$(shell git rev-parse HEAD) --target irace .
+
+docker-irace-publish: docker-irace-build
+	docker push registry.leoek.tech/rqapirace:$(shell git rev-parse HEAD)
+	docker tag registry.leoek.tech/rqapirace:$(shell git rev-parse HEAD) registry.leoek.tech/rqapirace:current
+	docker push registry.leoek.tech/rqapirace:current
+
+irace-clean:
+	rm -rf ./irace/output
+	mkdir -p ./irace/output
+	touch ./irace/output/.gitkeep
+	rm -rf ./irace/std
+	mkdir -p ./irace/std
+	touch ./irace/std/.gitkeep
+
+irace-check:
+	cd irace && Rscript checkIrace.R

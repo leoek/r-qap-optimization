@@ -51,3 +51,24 @@ FROM base as dev
 RUN yarn build:debug
 ENTRYPOINT [ "yarn" ]
 CMD [ "start" ]
+
+FROM base as irace
+
+USER root
+# setup R and install irace
+RUN apt-get update -y && apt-get install -y r-base && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN R -e "install.packages('irace',dependencies=TRUE, repos='http://cran.rstudio.com/')"
+
+# copy and configure irace
+COPY irace ./irace
+WORKDIR /usr/src/app/irace
+# irace will be run inside the container, did would be overengineered here
+RUN sed -i 's/docker run --rm -v", outDirMount, "-v", instancesDirMount, "registry.leoek.tech\/rqap:current serve:node irace", instanceName, "RQAP/node ..\/dist\/app.js irace", instanceName, "RQAP --outDir output --problemInstancesDirectory instances/g' executeAlgo.R
+
+# build and run
+RUN yarn build
+
+ENTRYPOINT [ "Rscript" ]
+CMD [ "startIrace.R" ]
