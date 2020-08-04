@@ -35,7 +35,13 @@ const setParameter = (parameters, path, val) => {
   if (path === "randomizeAgentOptions") {
     set(parameters, path, !!parseInt(val));
   } else if (
-    ["instanceName", "instanceType", "iraceOutputFileName"].includes(path)
+    [
+      "instanceName",
+      "instanceType",
+      "iraceOutputFileName",
+      "outDir",
+      "problemInstancesDirectory"
+    ].includes(path)
   ) {
     set(parameters, path, val);
   } else {
@@ -70,7 +76,9 @@ export const getParametersFromArgs = () => {
     randomizeAgentOptions: true,
     pResetAfterBatch: 0,
     seed: -1,
-    iraceOutputFileName: undefined
+    iraceOutputFileName: undefined,
+    outDir: undefined, // defaults to "out" (config)
+    problemInstancesDirectory: undefined // defaults to "problems" (parser)
   };
   // 0 and 1 are node and the js filename
   if (process.argv[2] === "paramils") {

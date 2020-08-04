@@ -39,6 +39,7 @@ export const toNativeInstance = instance => {
 
 export const createParser = ({
   basePath = ".",
+  problemInstancesDirectory = "problems",
   fileExtension = "",
   parseFn = id => id
 }) => {
@@ -48,7 +49,7 @@ export const createParser = ({
       ? resolvePath(basePath, path)
       : resolvePath(
           basePath,
-          "problems",
+          problemInstancesDirectory,
           fileExtension && !name.includes(fileExtension)
             ? `${name}.${fileExtension}`
             : name

@@ -14,9 +14,6 @@ import config, { INSTANCE_TYPE } from "./config";
 import masterMain from "./master";
 import workerMain from "./worker";
 
-const qapParser = createQAPParser();
-const rqapParser = createRQAPParser();
-
 const main = async () => {
   const logLevels =
     (cluster.isMaster && config.logging.master) ||
@@ -38,8 +35,14 @@ const main = async () => {
     randomizeAgentOptions,
     warmupSolutions,
     pResetAfterBatch,
-    iraceOutputFileName
+    iraceOutputFileName,
+    problemInstancesDirectory
   } = parameters;
+
+  const outDir = parameters.outDir || config.outDir;
+  const parserOptions = {
+    problemInstancesDirectory
+  };
 
   /**
    * @typedef nativeInstance
@@ -52,7 +55,10 @@ const main = async () => {
    * @type nativeInstance
    */
   let instance;
-  const parser = instanceType === INSTANCE_TYPE.QAP ? qapParser : rqapParser;
+  const parser =
+    instanceType === INSTANCE_TYPE.QAP
+      ? createQAPParser(parserOptions)
+      : createRQAPParser(parserOptions);
   try {
     instance = await parser.fileToNativeInstance({
       name: instanceName
@@ -65,11 +71,11 @@ const main = async () => {
   logger.info("native instance", inspect(instance, false, null));
 
   if (cluster.isMaster) {
-    if (!fs.existsSync(config.outDir)) {
-      fs.mkdirSync(config.outDir);
+    if (!fs.existsSync(outDir)) {
+      fs.mkdirSync(outDir);
     }
     const jsonLogWriteStream = fs.createWriteStream(
-      `${config.outDir}/${new Date().toISOString()}.jsonlog`,
+      `${outDir}/${new Date().toISOString()}.jsonlog`,
       { flags: "a" }
     );
     jsonLogWriteStream.write(
@@ -145,13 +151,9 @@ const main = async () => {
     const iraceResult = `${overallBest.quality} ${Math.floor(overallRuntime)}`;
     logger.log(`Result for Irace: ${iraceResult}`);
     if (iraceOutputFileName) {
-      fs.writeFileSync(
-        `${config.outDir}/${iraceOutputFileName}`,
-        `${iraceResult}\n`,
-        {
-          encoding: "utf8"
-        }
-      );
+      fs.writeFileSync(`${outDir}/${iraceOutputFileName}`, `${iraceResult}\n`, {
+        encoding: "utf8"
+      });
     }
   } else if (cluster.isWorker) {
     const solutionCountTargetPerWorker = Math.ceil(
