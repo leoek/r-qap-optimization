@@ -579,7 +579,18 @@ void PlaceSolAtPosition(std::vector<Solution*> &population, Solution* sol, int i
   }
 }
 
+/**
+ * updates the supplied population (inserts the solution)
+ * @returns true if the solution was inserted or the population has size 0
+ **/
 bool UpdatePopulation(std::vector<Solution*> &population, int populationSize, Solution &inSol){
+  if (populationSize < 1){
+    /**
+     * return true, even though the populaiton was not added to the solution
+     * (the solution should still be checked against following populations)
+     **/
+    return true;
+  }
   /**
    * If populations has max size and the solution is worse than the worst from the population
    * it wont make it into the population anyways
