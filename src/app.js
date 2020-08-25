@@ -95,6 +95,7 @@ const main = async () => {
         {
           logger,
           workerCount: agents,
+          agentOptions,
           solutionCountTarget,
           qualityTarget,
           addToProgressBar: n > 1 ? `| ${i}/${n}` : "",
