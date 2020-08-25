@@ -59,19 +59,25 @@ export const getParametersFromArgs = () => {
   const parameters = {
     instanceName: "nug12a",
     instanceType: INSTANCE_TYPE.RQAP,
-    agents: 1,
-    solutionCountTarget: 100,
+    agents: 10,
+    solutionCountTarget: 10000,
     qualityTarget: 20,
     warmupSolutions: 100,
     n: 1,
+    /**
+     * The usage of iterationBests introduces a huge performance hit as workers
+     * need to sync with every iteration explicitly.
+     */
     agentOptions: {
       maxPersonalBest: 3,
       maxGlobalBest: 3,
       maxPersonalHistory: 1,
+      maxIterationBest: 3,
       pBestPopulationWeight: 10,
       gBestPopulationWeight: 10,
       rndWeight: 1,
-      pHistoryWeight: 3
+      pHistoryWeight: 3,
+      iterationBestWeight: 0
     },
     randomizeAgentOptions: true,
     pResetAfterBatch: 0,

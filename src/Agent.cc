@@ -11,6 +11,27 @@ Local<Array> WrapPopulation(std::vector<Solution*> population){
   return jsArray;
 }
 
+Local<Array> WrapPopulation(std::deque<Solution*> population){
+  v8::Local<v8::Array> jsArray = Nan::New<v8::Array>(population.size());
+  for (size_t i = 0; i < population.size(); i++) {
+    Nan::Set(jsArray, i, CreateWrappedSolution(*population.at(i)));
+  }
+  return jsArray;
+}
+
+void UnWrapPopulation(std::vector<Solution*> population, v8::Local<v8::Value> value){
+  Local<Array> jsArray = Local<Array>::Cast(value);
+    for (unsigned int i = 0; i < population.size(); i++){
+      delete population[i];
+    }
+    population.clear();
+    for (unsigned int i = 0; i < jsArray->Length(); i++){
+      Handle<Value> val = jsArray->Get(i);
+      Solution* sol = Nan::ObjectWrap::Unwrap<Solution>(val->ToObject());
+      population.push_back(sol);
+    }
+}
+
 Nan::Persistent<v8::FunctionTemplate> Agent::constructor;
 
 NAN_MODULE_INIT(Agent::Init) {
@@ -51,7 +72,7 @@ NAN_METHOD(Agent::New) {
       "Agent::New - unexpected number of arguments, min these 6 need to be supplied: factoryArray, machineArray, flowMatrix, changeOverMatrix, distanceMatrix, newBestCallBack"
       ).ToLocalChecked());
   }
-  if(info.Length() > 13) {
+  if(info.Length() > 15) {
     return Nan::ThrowError(Nan::New(
       "Agent::New - too many arguments supply these: factoryArray, machineArray, flowMatrix, changeOverMatrix, distanceMatrix, newBestCallBack, maxPersonalBest, maxGlobalBest, maxPersonalHistory, pBestPopulationWeight, gBestPopulationWeight, rndWeight, pHistoryWeight"
       ).ToLocalChecked());
@@ -114,16 +135,22 @@ NAN_METHOD(Agent::New) {
     self->maxPersonalHistory = info[8]->NumberValue();
   }
   if(info[9]->IsNumber()) {
-    self->pBestPopulationWeight = info[9]->NumberValue();
+    self->maxIterationBest = info[9]->NumberValue();
   }
   if(info[10]->IsNumber()) {
-    self->gBestPopulationWeight = info[10]->NumberValue();
+    self->pBestPopulationWeight = info[10]->NumberValue();
   }
   if(info[11]->IsNumber()) {
-    self->rndWeight = info[11]->NumberValue();
+    self->gBestPopulationWeight = info[11]->NumberValue();
   }
   if(info[12]->IsNumber()) {
-    self->pHistoryWeight = info[12]->NumberValue();
+    self->rndWeight = info[12]->NumberValue();
+  }
+  if(info[13]->IsNumber()) {
+    self->pHistoryWeight = info[13]->NumberValue();
+  }
+  if(info[14]->IsNumber()) {
+    self->iterationBestWeight = info[14]->NumberValue();
   }
   
   #ifdef DEBUG_OUTPUT
@@ -172,6 +199,27 @@ NAN_METHOD(Agent::AddGlobalSolution) {
   info.GetReturnValue().Set(added);
 }
 
+NAN_METHOD(Agent::AddIterationBestSolution) {
+  // unwrap this Agent
+  Agent * self = Nan::ObjectWrap::Unwrap<Agent>(info.This());
+  #ifdef DEBUG_OUTPUT // disable these checks as they would run very often...
+  if (!Nan::New(Solution::constructor)->HasInstance(info[0])) {
+    return Nan::ThrowError(Nan::New("Agent::AddIterationBestSolution - expected argument to be instance of Solution").ToLocalChecked());
+  }
+  #endif // DEBUG_OUTPUT
+  Solution* inSol = Nan::ObjectWrap::Unwrap<Solution>(info[0]->ToObject());
+  #ifdef DEBUG_OUTPUT
+  if (inSol->quality < 0){
+    return Nan::ThrowError(Nan::New("Agent::AddGlobalSolution - Solution must have a quality assigned").ToLocalChecked());
+  }
+  if (inSol->GetLength() != self->machines.size()){
+    return Nan::ThrowError(Nan::New("Agent::AddGlobalSolution - Solution must have correct length").ToLocalChecked());
+  }
+  #endif // DEBUG_OUTPUT
+  bool added = self->UpdateIterationBestPopulation(*inSol);
+  info.GetReturnValue().Set(added);
+}
+
 NAN_GETTER(Agent::HandleGetters) {
   Agent* self = Nan::ObjectWrap::Unwrap<Agent>(info.This());
   std::string propertyName = std::string(*Nan::Utf8String(property));
@@ -185,14 +233,24 @@ NAN_GETTER(Agent::HandleGetters) {
     info.GetReturnValue().Set(self->maxPersonalBest);
   } else if (propertyName == "personalBestSolutions"){
     info.GetReturnValue().Set(WrapPopulation(self->personalBestSolutions));
+  } else if (propertyName == "maxPersonalHistory"){
+    info.GetReturnValue().Set(self->maxPersonalHistory);
+  } else if (propertyName == "personalHistorySolutions"){
+    info.GetReturnValue().Set(WrapPopulation(self->personalHistorySolutions));
+  } else if (propertyName == "maxIterationBest"){
+    info.GetReturnValue().Set(self->maxIterationBest);
+  } else if (propertyName == "personalBestSolutions"){
+    info.GetReturnValue().Set(WrapPopulation(self->iterationBestSolutions));
   } else if (propertyName == "pBestPopulationWeight"){
-    info.GetReturnValue().Set(self->maxPersonalBest);
+    info.GetReturnValue().Set(self->pBestPopulationWeight);
   } else if (propertyName == "gBestPopulationWeight"){
-    info.GetReturnValue().Set(self->maxPersonalBest);
+    info.GetReturnValue().Set(self->gBestPopulationWeight);
   } else if (propertyName == "rndWeight"){
     info.GetReturnValue().Set(self->rndWeight);
   } else if (propertyName == "pHistoryWeight"){
     info.GetReturnValue().Set(self->pHistoryWeight);
+  } else if (propertyName == "iterationBestWeight"){
+    info.GetReturnValue().Set(self->iterationBestWeight);
   } else {
     info.GetReturnValue().Set(Nan::Undefined());
   }
@@ -222,35 +280,21 @@ NAN_SETTER(Agent::HandleSetters) {
       return Nan::ThrowError(Nan::New("expected pHistoryWeight to be a number").ToLocalChecked());
     }
     self->pHistoryWeight = value->NumberValue();
+  } else if (propertyName == "iterationBestWeight"){
+    if(!value->IsNumber()) {
+      return Nan::ThrowError(Nan::New("expected iterationBestWeight to be a number").ToLocalChecked());
+    }
+    self->iterationBestWeight = value->NumberValue();
   } else if (propertyName == "personalBestSolutions"){
     if(!value->IsArray()) {
       return Nan::ThrowError(Nan::New("expected personalBestSolutions to be an Array").ToLocalChecked());
     }
-    Local<Array> jsArray = Local<Array>::Cast(value);
-    for (unsigned int i = 0; i < self->personalBestSolutions.size(); i++){
-      delete self->personalBestSolutions[i];
-    }
-    self->personalBestSolutions.clear();
-    for (unsigned int i = 0; i < jsArray->Length(); i++){
-      Handle<Value> val = jsArray->Get(i);
-      Solution* sol = Nan::ObjectWrap::Unwrap<Solution>(val->ToObject());
-      self->personalBestSolutions.push_back(sol);
-    }
+    UnWrapPopulation(self->personalBestSolutions, value);
   } else if (propertyName == "globalBestSolutions"){
     if(!value->IsArray()) {
       return Nan::ThrowError(Nan::New("expected globalBestSolutions to be an Array").ToLocalChecked());
     }
-    Local<Array> jsArray = Local<Array>::Cast(value);
-    for (unsigned int i = 0; i < self->globalBestSolutions.size(); i++){
-      delete self->globalBestSolutions[i];
-    }
-    self->globalBestSolutions.clear();
-    for (unsigned int i = 0; i < jsArray->Length(); i++){
-      Handle<Value> val = jsArray->Get(i);
-      Solution* sol = Nan::ObjectWrap::Unwrap<Solution>(val->ToObject());
-      self->globalBestSolutions.push_back(sol);
-    }
-    printf("\n\nAgent clear gBest %s\n\n", self->ToString().c_str());
+    UnWrapPopulation(self->personalBestSolutions, value);
   } else {
     return Nan::ThrowError(Nan::New("Agent::Not implemented.").ToLocalChecked());
   }
@@ -288,7 +332,7 @@ int Agent::GetNextValue(int currentMachineIndex, int level, std::vector<int> pre
   random_selector<> selector{};
   // try until a new index is selected
   while (selected < 0){
-    int populationSelector = GetRndNumberFromRange(0, rndWeight + gBestPopulationWeight + pBestPopulationWeight + pHistoryWeight);
+    int populationSelector = GetRndNumberFromRange(0, rndWeight + gBestPopulationWeight + pBestPopulationWeight + pHistoryWeight + iterationBestWeight - 1);
     if (populationSelector < rndWeight){
       // Select a random Factory from the available ones
       selected = selector(availableFactories);
@@ -304,13 +348,9 @@ int Agent::GetNextValue(int currentMachineIndex, int level, std::vector<int> pre
         possibleIndex = srcSol->permutation.at(currentMachineIndex).at(level);
       } else if (populationSelector < rndWeight + gBestPopulationWeight + pBestPopulationWeight + pHistoryWeight && personalHistorySolutions.size() >= 1){
         Solution * srcSol = selector(personalHistorySolutions);
-        /*
-        printf("personal history\n");
-        for (unsigned int k = 0; k < personalHistorySolutions.size(); k++){
-          printf("%i %s \n", k, personalHistorySolutions.at(k)->ToString().c_str());
-        }
-        printf("\nSELECTED %s\n", srcSol->ToString().c_str());
-        */
+        possibleIndex = srcSol->permutation.at(currentMachineIndex).at(level);
+      } else if (populationSelector < rndWeight + gBestPopulationWeight + pBestPopulationWeight + pHistoryWeight + iterationBestWeight && iterationBestSolutions.size() >= 1){
+        Solution * srcSol = selector(iterationBestSolutions);
         possibleIndex = srcSol->permutation.at(currentMachineIndex).at(level);
       }
       // Check whether there is a possible index which was copied from a previous Solution
@@ -653,6 +693,18 @@ bool Agent::UpdateGlobalPopulation(Solution &sol){
   return UpdatePopulation(globalBestSolutions, maxGlobalBest, sol);
 }
 
+void UpdateHistory(std::deque<Solution*> &population, int populationSize, Solution &inSol){
+  if (populationSize < 1){
+    return;
+  }
+  if (population.size() >= populationSize){
+    delete population.back();
+    population.pop_back();
+  }
+  Solution* sol = new Solution(inSol);
+  population.push_front(sol);
+}
+
 bool Agent::UpdatePersonalHistoryPopulation(Solution &inSol){
   #ifdef IGNORE_DUPLICATE_SOLUTIONS_IN_HISTORY
   // check that the solution is not a duplicate
@@ -660,14 +712,12 @@ bool Agent::UpdatePersonalHistoryPopulation(Solution &inSol){
     return false;
   }
   #endif //IGNORE_DUPLICATE_SOLUTIONS_IN_HISTORY
-  if (maxPersonalHistory > 0){
-    if (personalHistorySolutions.size() >= maxPersonalHistory){
-      delete personalHistorySolutions.back();
-      personalHistorySolutions.pop_back();
-    }
-    Solution* sol = new Solution(inSol);
-    personalHistorySolutions.push_front(sol);
-  }
+  UpdateHistory(personalHistorySolutions, maxPersonalHistory, inSol);
+  return true;
+}
+
+bool Agent::UpdateIterationBestPopulation(Solution &inSol){
+  UpdateHistory(iterationBestSolutions, maxIterationBest, inSol);
   return true;
 }
 
@@ -738,6 +788,21 @@ NAN_METHOD(Agent::_CreateSolution) {
 NAN_METHOD(Agent::_CreateAndReturnSolution) {
   // unwrap this Agent
   Agent * self = Nan::ObjectWrap::Unwrap<Agent>(info.This());
+
+  // check if the last iterationBestWasProvided
+  if (Nan::New(Solution::constructor)->HasInstance(info[0])) {
+    Solution* inSol = Nan::ObjectWrap::Unwrap<Solution>(info[0]->ToObject());
+    #ifdef DEBUG_OUTPUT // disable in non debug mode for better performance
+    if (inSol->quality < 0){
+      return Nan::ThrowError(Nan::New("Agent::AddGlobalSolution - Solution must have a quality assigned").ToLocalChecked());
+    }
+    if (inSol->GetLength() != self->machines.size()){
+      return Nan::ThrowError(Nan::New("Agent::AddGlobalSolution - Solution must have correct length").ToLocalChecked());
+    }
+    #endif // DEBUG_OUTPUT
+    self->UpdateIterationBestPopulation(*inSol);
+  }
+
   // create new solution (native)
   Solution* sol = self->CreateSolution();
   /**

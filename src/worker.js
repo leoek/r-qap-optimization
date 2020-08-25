@@ -44,13 +44,23 @@ const reportNewSolution = (solution, createdCount) => {
   );
 };
 
+const reportNewIterationSolution = (solution, createdCount) => {
+  process.send(
+    newMessage(MESSAGE_TYPE.NEW_ITERATION_SOLUTION, {
+      solution,
+      workerId: cluster.worker.id,
+      createdSolutions: createdCount
+    })
+  );
+};
+
 /**
  * @param {object} options
  * @param {object} options.logger console compatible logger
  * @param {nativeInstance} options.instance native instance to initialize the agent
  * @param {number} options.solutionCountMax maximum number of solutions this worker will create
  * @param {agentOptions} options.agentOptions configuration options for this agent
- * @param {number=100} options.batchSize number of solutions to create before returning to the event loop and reporting back
+ * @param {number=1} options.batchSize number of solutions to create before returning to the event loop and reporting back
  *   - a higher number decreases communication and therefore increases performance
  *   - a lower number improves synchronization between agents (global population is updated earlier)
  * @param {object} resumeOptions supply an agent state to resume a previous execution
@@ -135,11 +145,15 @@ const workerMain = async (
     maxPersonalBest,
     maxGlobalBest,
     maxPersonalHistory,
+    maxIterationBest,
     pBestPopulationWeight,
     gBestPopulationWeight,
     rndWeight,
-    pHistoryWeight
+    pHistoryWeight,
+    iterationBestWeight
   } = agentOptions;
+
+  const iterationBestModeEnabled = maxIterationBest && iterationBestWeight;
 
   // Every worker process holds it's own agent
   const agent = new agentaddon.Agent(
@@ -158,10 +172,12 @@ const workerMain = async (
     maxPersonalBest,
     maxGlobalBest,
     maxPersonalHistory,
+    maxIterationBest,
     pBestPopulationWeight,
     gBestPopulationWeight,
     rndWeight,
-    pHistoryWeight
+    pHistoryWeight,
+    iterationBestWeight
   );
 
   /**
@@ -185,6 +201,16 @@ const workerMain = async (
     logger.debug("rehydrated global best", agent.globalBestSolutions);
   }
 
+  let resolveSolutionCreationPromise = () => undefined;
+  const solutionCreationPromise = new Promise(resolve => {
+    resolveSolutionCreationPromise = resolve;
+  });
+
+  const stopSolutionCreation = () => {
+    shouldStop = true;
+    resolveSolutionCreationPromise();
+  };
+
   // Receive messages from the master process.
   process.on("message", msg => {
     config.logging.messages && logger.debug("received message", msg);
@@ -196,7 +222,20 @@ const workerMain = async (
         logger.debug("result of newly added global solution", result);
       }
     } else if (msg.type === MESSAGE_TYPE.STOP_SOLUTION_CREATION) {
-      shouldStop = true;
+      stopSolutionCreation();
+    } else if (msg.type === MESSAGE_TYPE.NEW_ITERATION_BEST_SOLUTION) {
+      if (!shouldStop) {
+        const { solution } = msg.payload;
+        const nativeIterationBestSolution = toNativeSolution(solution);
+        const newSolution = agent.createAndReturnSolution(
+          nativeIterationBestSolution
+        );
+        reportNewIterationSolution(newSolution, solutionCount);
+        solutionCount++;
+        if (solutionCountMax && solutionCount >= solutionCountMax) {
+          stopSolutionCreation();
+        }
+      }
     }
   });
 
@@ -205,31 +244,33 @@ const workerMain = async (
     agent.gBestPopulationWeight = 0;
     agent.rndWeight = 1;
     agent.pHistoryWeight = 0;
+    agent.iterationBestWeight = 0;
     agent.createSolutions(warmupSolutions);
     agent.pBestPopulationWeight = pBestPopulationWeight;
     agent.gBestPopulationWeight = gBestPopulationWeight;
     agent.rndWeight = rndWeight;
     agent.pHistoryWeight = pHistoryWeight;
+    agent.iterationBestWeight = iterationBestWeight;
   }
 
-  while (
-    !shouldStop &&
-    (!solutionCountMax || solutionCount < solutionCountMax)
-  ) {
-    // Worker needs time to recv messages and callbacks before executing native code again...
-    await sleep(1);
-    agent.createSolutions(batchSize);
-    solutionCount += batchSize;
-    reportCreatedSolutionsCount(solutionCount);
-    if (pResetAfterBatch && Math.random() < pResetAfterBatch) {
-      agent.personalBestSolutions = [];
-      agent.pBestPopulationWeight = 0;
-      agent.gBestPopulationWeight = 0;
+  if (iterationBestModeEnabled) {
+    reportNewIterationSolution(agent.createAndReturnSolution(), solutionCount);
+    solutionCount++;
+  } else {
+    while (!shouldStop) {
+      // Worker needs time to recv messages and callbacks before executing native code again...
+      await sleep(batchSize);
       agent.createSolutions(batchSize);
-      agent.pBestPopulationWeight = pBestPopulationWeight;
-      agent.gBestPopulationWeight = gBestPopulationWeight;
+      solutionCount = solutionCount + batchSize;
+      solutionCount % 100 === 0 && reportCreatedSolutionsCount(solutionCount);
+      if (solutionCountMax && solutionCount >= solutionCountMax) {
+        stopSolutionCreation();
+      }
     }
   }
+
+  // wait for this agent to be done
+  await solutionCreationPromise;
   reportCreatedSolutionsCount(solutionCount);
   reportAgentState(
     solutionCount,

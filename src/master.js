@@ -34,6 +34,10 @@ const main = async ({
   newBestSolutionCallback,
   agentOptions
 }) => {
+  // check whether the iterationBests are enabled
+  const iterationBestModeEnabled =
+    agentOptions.maxIterationBest && agentOptions.iterationBestWeight;
+
   // This will contain the best found solution (might be a native instance)
   let best = null;
   let createdSolutions = 0;
@@ -70,6 +74,8 @@ const main = async ({
   // configure the max event listeners warning, we need this amount
   process.setMaxListeners(3 * workerCount);
 
+  const iterationSolutions = {};
+
   // Receive Solutions from Workers
   const messageHandler = msg => {
     config.logging.messages &&
@@ -78,8 +84,8 @@ const main = async ({
         createdSolutions
       });
     if (
-      msg.type === MESSAGE_TYPE.CREATED_SOLUTIONS_COUNT ||
-      MESSAGE_TYPE.NEW_SOLUTION
+      (!iterationBestModeEnabled && msg.type === MESSAGE_TYPE.NEW_SOLUTION) ||
+      msg.type === MESSAGE_TYPE.CREATED_SOLUTIONS_COUNT
     ) {
       createdWorkerSolutions[msg.payload.workerId] =
         msg.payload.createdSolutions;
@@ -131,12 +137,37 @@ const main = async ({
           }
         }
       }
-    }
-    if (msg.type === MESSAGE_TYPE.AGENT_STATE) {
+    } else if (msg.type === MESSAGE_TYPE.AGENT_STATE) {
       logger.debug(
         "agent reported the following state",
         inspect(msg.payload, false, null)
       );
+    } else if (msg.type === MESSAGE_TYPE.NEW_ITERATION_SOLUTION) {
+      const { solution, workerId } = msg.payload;
+      iterationSolutions[workerId] = solution;
+      /**
+       * check whether all solutions for that iteration are complete
+       * if they are complete, determine the best and broadcast it.
+       */
+      if (objectValues(iterationSolutions).length >= workerCount) {
+        let best;
+        Object.keys(iterationSolutions).forEach(id => {
+          if (!best || iterationSolutions[id].quality < best.quality) {
+            best = iterationSolutions[id];
+          }
+          delete iterationSolutions[id];
+        });
+        broadcast(
+          newMessage(MESSAGE_TYPE.NEW_ITERATION_BEST_SOLUTION, {
+            solution: best
+          })
+        );
+        createdSolutions = createdSolutions + workerCount;
+        showProgressBar &&
+          solutionCountProgressBar.update(createdSolutions, {
+            bestQuality: best && best.quality
+          });
+      }
     }
   };
 

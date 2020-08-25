@@ -61,6 +61,7 @@ public:
   std::vector<Solution*> globalBestSolutions;
   std::vector<Solution*> personalBestSolutions;
   std::deque<Solution*> personalHistorySolutions;
+  std::deque<Solution*> iterationBestSolutions;
 
   /**
    * Configurable Parameters for agents solution creation
@@ -70,11 +71,13 @@ public:
   int maxGlobalBest = 10;
   int maxPersonalBest = 10;
   int maxPersonalHistory = 0;
+  int maxIterationBest = 0;
 
   int pBestPopulationWeight = 10;
   int gBestPopulationWeight = 10;
   int rndWeight = 1;
   int pHistoryWeight = 0;
+  int iterationBestWeight = 0;
 
   void ReportNewBestSolution(Solution&);
   bool HandleNewSolution(Solution&);
@@ -84,6 +87,7 @@ public:
   bool UpdatePersonalPopulation(Solution&);
   bool UpdateGlobalPopulation(Solution&);
   bool UpdatePersonalHistoryPopulation(Solution&);
+  bool UpdateIterationBestPopulation(Solution&);
 
   Solution* CreateSolution();
   void CreateSolutions(int);
@@ -94,6 +98,7 @@ public:
   static NAN_MODULE_INIT(Init);
   static NAN_METHOD(New);
   static NAN_METHOD(AddGlobalSolution);
+  static NAN_METHOD(AddIterationBestSolution);
   static NAN_METHOD(_CreateSolution);
   static NAN_METHOD(_CreateAndReturnSolution);
   static NAN_METHOD(_CreateSolutions);
