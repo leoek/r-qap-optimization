@@ -35,3 +35,10 @@ irace-clean:
 
 irace-check:
 	cd irace && Rscript checkIrace.R
+
+irace-start:
+	cd irace && Rscript startIrace.R
+
+out-clean:
+	rm -rf ./out
+	mkdir -p ./out

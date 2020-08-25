@@ -64,7 +64,7 @@ const workerMain = async (
     instance,
     solutionCountMax: inSolutionCountMax,
     agentOptions: inAgentOptions = {},
-    batchSize: inBatchSize = 100,
+    batchSize: inBatchSize = 1,
     randomizeAgentOptions: inRandomizeAgentOptions = false,
     warmupSolutions: inWarmupSolutions = 0,
     pResetAfterBatch: inPResetAfterBatch = 0
