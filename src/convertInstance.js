@@ -1,3 +1,4 @@
+import "./lib/typedefs";
 import { inspect } from "util";
 import { compose } from "./helpers";
 import createQAPParser from "./lib/qapParser";
@@ -64,12 +65,23 @@ const co1 = instance => ({
   )
 });
 
+/**
+ *
+ * @param {instance} instance
+ */
+const coIsDistance = instance => ({
+  ...instance,
+  changeOverMatrix: instance.changeOverMatrix.map((row, i) =>
+    row.map((_, k) => (k === i ? 0 : instance.distanceMatrix[i][k]))
+  )
+});
+
 const main = async () => {
   const logger = createLogger({});
 
   // read this propblem instance
   const instanceType = INSTANCE_TYPE.QAP;
-  const instanceName = "nug12";
+  const instanceName = "nug20";
 
   /**
    * @type instance
@@ -89,7 +101,12 @@ const main = async () => {
   logger.info("original instance\n", inspect(instance, false, null));
 
   // modify if necessary
-  instance = compose(capacity2, probability1to25, redundancy2, co1)(instance);
+  instance = compose(
+    capacity2,
+    probability1to25,
+    redundancy2,
+    coIsDistance
+  )(instance);
 
   logger.info("modified instance\n", inspect(instance, false, null));
 
