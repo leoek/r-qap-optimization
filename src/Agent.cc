@@ -438,37 +438,6 @@ int Agent::GetAltFlowDistanceSum(std::vector<std::vector<int>> permutation, std:
 }
 
 /**
- * returns a number between 0 and 1 which represents the quality of 
- * the alternative flowDistance with the failedFactories in relation
- * to a referenceFlowDistance (ususally no failedFactories)
- * lower values are better
- * Examples:
- * 0: the alternative flowDistance value with the failedFactories
- *   is just as good or better as the referenceFlowDistance
- * 0.5: the alt flowDistance was twice as much as the flowDistance
- *   (the cost doubled due to the failedFactories, eg quality 1000 instead of 500)
- * 1: there was is no alternative with the failedFactories
- **/
-double Agent::GetRelativeAltFlowDistance(
-  int referenceFlowDistance,
-  std::vector<std::vector<int>> permutation,
-  std::vector<int> failedFactories
-){
-  if (referenceFlowDistance < 0){
-    throw std::runtime_error("Agent::GetRelativeAltFlowDistance referenceFlowDistance must be >= 0");
-  }
-  int altFlowDistanceSum = GetAltFlowDistanceSum(permutation, failedFactories);
-  if (altFlowDistanceSum < 0){
-    return 1;
-  }
-  // The following case will always be triggered if altFlowDistance = 0
-  if (altFlowDistanceSum <= referenceFlowDistance){
-    return 0;
-  }
-  return (double)(1 - (double)referenceFlowDistance/(double)altFlowDistanceSum);
-}
-
-/**
  * Iterates through the factories and calculates how much the flowDistance quality gets
  * worse if that factory fails (relative to the flowDistance without failure) and the change-
  * over-cost which is introduced by the switch of the factory.
@@ -484,7 +453,7 @@ double Agent::GetRelativeAltFlowDistance(
  * @returns sum(Factories F, 0->n, F_i-failure [0,1] * (flowDistancePenalty + coCost))
  */
 double Agent::GetSingleFactoryFailureScore(
-  int referenceFlowDistance,
+  int flowDistanceSum,
   std::vector<std::vector<int>> permutation
 ) {
   double score = 0;
@@ -492,13 +461,17 @@ double Agent::GetSingleFactoryFailureScore(
   failedFactories.push_back(0);
   for (unsigned int f_i = 0; f_i < factories.size(); f_i++){
     failedFactories[0] = f_i;
-    double relAltFlowDistance = GetRelativeAltFlowDistance(referenceFlowDistance, permutation, failedFactories);
+    int altFlowDistance = GetAltFlowDistanceSum(permutation, failedFactories);
     int coCost = GetChangeOverCost(permutation, failedFactories);
     #ifdef DEBUG_OUTPUT
-      std::string debugOutput = string_format("Factory %i, pFailure %f, relAltFlowDistance %f, coCost %i", f_i, factories[f_i]->pFailure, relAltFlowDistance, coCost);
+      std::string debugOutput = string_format("Factory %i, pFailure %f, altFlowDistance %f, coCost %i", f_i, factories[f_i]->pFailure, altFlowDistance, coCost);
       debugOutput = string_format("%s score %f", debugOutput.c_str(), score);
     #endif
-    score += factories[f_i]->pFailure * (relAltFlowDistance * referenceFlowDistance + coCost);
+    if (altFlowDistance >= 0){
+      score += factories[f_i]->pFailure * (altFlowDistance + coCost);
+    } else {
+      // TODO raise warning, add penalty
+    }
     #ifdef DEBUG_OUTPUT
       printf("%s => %f\n", debugOutput.c_str(), score);
     #endif
@@ -508,9 +481,9 @@ double Agent::GetSingleFactoryFailureScore(
 
 double Agent::GetFailureRiskSum(std::vector<std::vector<int>> permutation){
   /**
-   * Start with 1, if the failureRisk is zero (usually QAP case) the resulting sum will be 1
+   * Start with 0, if the failureRisk is zero (usually the QAP only case) the resulting sum will also be 0.
    **/
-  double failureRiskSum = 1;
+  double failureRiskSum = 0;
   for (unsigned int i = 0; i < permutation.size(); i++){
     double machineFailure = 1;
     for (unsigned int k = 0; k < permutation[i].size(); k++){
@@ -537,7 +510,9 @@ int Agent::RateSolution(Solution &sol){
   #else
     sol.failureRiskSum = GetFailureRiskSum(sol.permutation);
     sol.singleFactoryFailureScore = GetSingleFactoryFailureScore(sol.flowDistanceSum, sol.permutation);
-    
+
+    // TODO refactor to only calculate reference values once.
+
     // get average flow
     int flowSum = 0;
     for (int i = 0; i < machines.size(); i++){
@@ -545,7 +520,7 @@ int Agent::RateSolution(Solution &sol){
         flowSum += flowMatrix->GetValue(i, k);
       }
     }
-    double averageFlow = flowSum / (machines.size() * machines.size());
+    double averageFlow = flowSum / pow(machines.size(), 2);
     // get avarage distance
     int distanceSum = 0;
     for (int i = 0; i < factories.size(); i++){
@@ -553,13 +528,37 @@ int Agent::RateSolution(Solution &sol){
         distanceSum += distanceMatrix->GetValue(i, k);
       }
     }
-    double averageDistance = distanceSum / (factories.size() * factories.size());
-    // get instance reference flowDistance
+    double averageDistance = distanceSum / pow(factories.size(), 2);
+    // get average coCost
+    int coSum = 0;
+    for (int i = 0; i < factories.size(); i++){
+      for (int k = 0; k < factories.size(); k++){
+        coSum += changeOverMatrix->GetValue(i, k);
+      }
+    }
+    double averageChangeOverCost = coSum / pow(factories.size(), 2);
+    // get average factory failure probability
+    double factoryFailureProbabilitySum = 0;
+    for (int i = 0; i < factories.size(); i++){
+        factoryFailureProbabilitySum += factories.at(i)->pFailure;
+    }
+    double averageFactoryFailureProbability = factoryFailureProbabilitySum / factories.size();
+    // get average machine redundancy
+    int machineRedundancySum = 0;
+    for (int i = 0; i < machines.size(); i++){
+        machineRedundancySum += machines.at(i)->redundancy;
+    }
+    double averageMachineRedundancy = machineRedundancySum / machines.size();
+    // get quality reference values
     double flowDistanceSumReference = (averageDistance * averageFlow) * (machines.size() * machines.size());
-    printf("\nSolution Rating Debugging %i %f\n", sol.flowDistanceSum, flowDistanceSumReference);
+    double failureRiskReference = pow(averageFactoryFailureProbability, averageMachineRedundancy) * machines.size();
+
+    double singleFactoryFailureReference = (flowDistanceSumReference + averageChangeOverCost) * averageFactoryFailureProbability * factories.size();
+    
+    printf("\nSolution Rating Debugging %f %f %f\n", sol.flowDistanceSum / flowDistanceSumReference, sol.failureRiskSum / failureRiskReference, sol.singleFactoryFailureScore / singleFactoryFailureReference);
 
     // aggregate the scores
-    sol.quality = sol.flowDistanceSum + sol.failureRiskSum + sol.singleFactoryFailureScore;
+    sol.quality = (sol.flowDistanceSum / flowDistanceSumReference) + (sol.failureRiskSum / failureRiskReference) + (sol.singleFactoryFailureScore / singleFactoryFailureReference);
   #endif // QAP_ONLY
   #ifdef DEBUG_OUTPUT
   printf("\nRatedSolution %s\n", sol.ToString().c_str());
