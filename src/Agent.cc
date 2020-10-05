@@ -537,8 +537,29 @@ int Agent::RateSolution(Solution &sol){
   #else
     sol.failureRiskSum = GetFailureRiskSum(sol.permutation);
     sol.singleFactoryFailureScore = GetSingleFactoryFailureScore(sol.flowDistanceSum, sol.permutation);
+    
+    // get average flow
+    int flowSum = 0;
+    for (int i = 0; i < machines.size(); i++){
+      for (int k = 0; k < machines.size(); k++){
+        flowSum += flowMatrix->GetValue(i, k);
+      }
+    }
+    double averageFlow = flowSum / (machines.size() * machines.size());
+    // get avarage distance
+    int distanceSum = 0;
+    for (int i = 0; i < factories.size(); i++){
+      for (int k = 0; k < factories.size(); k++){
+        distanceSum += distanceMatrix->GetValue(i, k);
+      }
+    }
+    double averageDistance = distanceSum / (factories.size() * factories.size());
+    // get instance reference flowDistance
+    double flowDistanceSumReference = (averageDistance * averageFlow) * (machines.size() * machines.size());
+    printf("\nSolution Rating Debugging %i %f\n", sol.flowDistanceSum, flowDistanceSumReference);
+
     // aggregate the scores
-    sol.quality = sol.flowDistanceSum * sol.failureRiskSum + sol.singleFactoryFailureScore;
+    sol.quality = sol.flowDistanceSum + sol.failureRiskSum + sol.singleFactoryFailureScore;
   #endif // QAP_ONLY
   #ifdef DEBUG_OUTPUT
   printf("\nRatedSolution %s\n", sol.ToString().c_str());
