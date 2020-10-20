@@ -12,5 +12,8 @@ export const toNativeSolution = solution =>
     solution.quality,
     solution.flowDistanceSum,
     solution.failureRiskSum,
-    solution.singleFactoryFailureScore
+    solution.singleFactoryFailureSum,
+    solution.flowDistance,
+    solution.failureRisk,
+    solution.singleFactoryFailure
   );

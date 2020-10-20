@@ -18,6 +18,7 @@
 #define RANDOMIZE_SOLUTION_CREATION_ORDER
 
 #include <nan.h>
+#include <math.h>       /* pow */
 #include "Solution.h"
 #include "Factory.h"
 #include "Machine.h"
@@ -38,18 +39,40 @@ private:
 
   // Rating Solutions
   int GetFlowDistanceSum(std::vector<std::vector<int>>);
-  double GetFailureRiskSum(std::vector<std::vector<int>>);
+  double GetFailureRiskSum(std::vector<std::vector<int>> permutation);
   // alternative solutions (with failed factories)
   int GetChangeOverCost(std::vector<std::vector<int>>, std::vector<int>);
-  int GetAltFlowDistanceSum(std::vector<std::vector<int>>, std::vector<int>);
-  double GetRelativeAltFlowDistance(
-    int flowDistanceSumReference,
-    std::vector<std::vector<int>> permutation,
-    std::vector<int> failedFactories);
-  double GetSingleFactoryFailureScore(
-    int flowDistanceSumReference,
+  int GetAltFlowDistanceSum(std::vector<std::vector<int>> permutation, std::vector<int> failedFactories);
+  double GetSingleFactoryFailureSum(
+    int flowDistanceSum,
     std::vector<std::vector<int>> permutation
   );
+
+  /**
+   * These are computed once from the supplied problem instance
+   */
+  double averageFlow = -1;
+  double averageDistance = -1;
+  double averageChangeOverCost = -1;
+  double averageFactoryFailureProbability = -1;
+  double averageMachineRedundancy = -1;
+  // calculated from the values above once
+  double flowDistanceSumReference = -1;
+  double failureRiskReference = -1;
+  double singleFactoryFailureReference = -1;
+
+  double getAverageFlow();
+  double getAverageDistance();
+  double getAverageChangeOverCost();
+  double getAverageFactoryFailureProbability();
+  double getAverageMachineRedundancy();
+
+  double getFlowDistanceSumReference();
+  double getFailureRiskReference();
+  double getSingleFactoryFailureReference();
+  
+  // generates all of the values above
+  void generateQualityScoreReferences();
 
 public:
   std::vector<Machine*> machines;

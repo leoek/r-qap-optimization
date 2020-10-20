@@ -2,6 +2,12 @@
  * @typedef {object} Solution
  * @property {number[][]} permutation
  * @property {number} quality
+ * @property {number} flowDistanceSum
+ * @property {number} failureRiskSum
+ * @property {number} singleFactoryFailureSum
+ * @property {number} flowDistance
+ * @property {number} failureRisk
+ * @property {number} singleFactoryFailure
  */
 
 /**

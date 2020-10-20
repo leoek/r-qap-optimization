@@ -114,9 +114,9 @@ const main = async () => {
       );
       qualities.push(bestQuality);
       qualityComponents.push({
-        fd: best.flowDistanceSum,
-        risk: best.failureRiskSum,
-        fFailureScore: best.singleFactoryFailureScore
+        flowDistance: best.flowDistanceSum,
+        failureRisk: best.failureRiskSum,
+        factoryFailure: best.singleFactoryFailureSum
       });
       overallCreatedSolutions += createdSolutions;
       if (!overallBest || best.quality < overallBest.quality) {

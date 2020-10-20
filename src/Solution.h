@@ -14,7 +14,11 @@ public:
   // distinct quality scores
   int flowDistanceSum = -1;
   double failureRiskSum = -1;
-  double singleFactoryFailureScore = -1;
+  double singleFactoryFailureSum = -1;
+  // normalized quality scores
+  double flowDistance = -1;
+  double failureRisk = -1;
+  double singleFactoryFailure = -1;
 
   Solution();
   Solution(Solution&);
