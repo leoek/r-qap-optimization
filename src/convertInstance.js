@@ -81,7 +81,7 @@ const main = async () => {
 
   // read this propblem instance
   const instanceType = INSTANCE_TYPE.QAP;
-  const instanceName = "nug20";
+  const instanceName = "els19";
 
   /**
    * @type instance
