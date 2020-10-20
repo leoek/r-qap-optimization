@@ -43,7 +43,7 @@ private:
   // alternative solutions (with failed factories)
   int GetChangeOverCost(std::vector<std::vector<int>>, std::vector<int>);
   int GetAltFlowDistanceSum(std::vector<std::vector<int>> permutation, std::vector<int> failedFactories);
-  double GetSingleFactoryFailureScore(
+  double GetSingleFactoryFailureSum(
     int flowDistanceSum,
     std::vector<std::vector<int>> permutation
   );

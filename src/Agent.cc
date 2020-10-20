@@ -449,7 +449,7 @@ int Agent::GetAltFlowDistanceSum(std::vector<std::vector<int>> permutation, std:
  *
  * @returns sum(Factories F, 0->n, F_i-failure [0,1] * (altFlowDistance + coCost))
  */
-double Agent::GetSingleFactoryFailureScore(
+double Agent::GetSingleFactoryFailureSum(
   int flowDistanceSum,
   std::vector<std::vector<int>> permutation
 ) {
@@ -502,13 +502,16 @@ int Agent::RateSolution(Solution &sol){
   // Rate the generated solution
   // #TODO rate all criteria (currently only flow*distance)
   sol.flowDistanceSum = GetFlowDistanceSum(sol.permutation);
+  sol.flowDistance = sol.flowDistanceSum / flowDistanceSumReference;
   #ifdef QAP_ONLY
     sol.quality = sol.flowDistanceSum;
   #else
     sol.failureRiskSum = GetFailureRiskSum(sol.permutation);
-    sol.singleFactoryFailureScore = GetSingleFactoryFailureScore(sol.flowDistanceSum, sol.permutation);
+    sol.failureRisk = sol.failureRiskSum / failureRiskReference;
+    sol.singleFactoryFailureSum = GetSingleFactoryFailureSum(sol.flowDistanceSum, sol.permutation);
+    sol.singleFactoryFailure = sol.singleFactoryFailureSum / singleFactoryFailureReference;
     // aggregate the scores
-    sol.quality = (sol.flowDistanceSum / flowDistanceSumReference) + (sol.failureRiskSum / failureRiskReference) + (sol.singleFactoryFailureScore / singleFactoryFailureReference);
+    sol.quality = sol.flowDistance +sol.failureRisk + sol.singleFactoryFailure;
   #endif // QAP_ONLY
   #ifdef DEBUG_OUTPUT
   printf("\nRatedSolution %s\n", sol.ToString().c_str());
@@ -806,21 +809,21 @@ void Agent::generateQualityScoreReferences(){
 
 double Agent::getFlowDistanceSumReference(){
   if (flowDistanceSumReference == -1){
-    flowDistanceSumReference = (averageDistance * averageFlow) * (machines.size() * machines.size());
+    flowDistanceSumReference = (getAverageDistance() * getAverageFlow()) * (machines.size() * machines.size());
   }
   return flowDistanceSumReference;
 }
 
 double Agent::getFailureRiskReference(){
   if (failureRiskReference == -1){
-    failureRiskReference = pow(averageFactoryFailureProbability, averageMachineRedundancy) * machines.size();
+    failureRiskReference = pow(getAverageFactoryFailureProbability(), getAverageMachineRedundancy()) * machines.size();
   }
   return failureRiskReference;
 }
 
 double Agent::getSingleFactoryFailureReference(){
   if (singleFactoryFailureReference == -1){
-    singleFactoryFailureReference = (flowDistanceSumReference + averageChangeOverCost) * averageFactoryFailureProbability * factories.size();
+    singleFactoryFailureReference = (getFlowDistanceSumReference() + getAverageChangeOverCost()) * getAverageFactoryFailureProbability() * factories.size();
   }
   return singleFactoryFailureReference;
 }
@@ -881,7 +884,7 @@ double Agent::getAverageMachineRedundancy(){
     for (int i = 0; i < machines.size(); i++){
         machineRedundancySum += machines.at(i)->redundancy;
     }
-    return averageMachineRedundancy = machineRedundancySum / machines.size();
+    averageMachineRedundancy = machineRedundancySum / machines.size();
   }
   return averageMachineRedundancy;
 }

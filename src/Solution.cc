@@ -13,7 +13,10 @@ Solution::Solution(Solution& old){
   }
   flowDistanceSum = old.flowDistanceSum;
   failureRiskSum = old.failureRiskSum;
-  singleFactoryFailureScore = old.singleFactoryFailureScore;
+  singleFactoryFailureSum = old.singleFactoryFailureSum;
+  flowDistance = old.flowDistance;
+  failureRisk = old.failureRisk;
+  singleFactoryFailure = old.singleFactoryFailure;
   quality = old.quality;
 }
 
@@ -28,7 +31,10 @@ NAN_MODULE_INIT(Solution::Init) {
   Nan::SetAccessor(ctor->InstanceTemplate(), Nan::New("permutation").ToLocalChecked(), Solution::HandleGetters, Solution::HandleSetters);
   Nan::SetAccessor(ctor->InstanceTemplate(), Nan::New("flowDistanceSum").ToLocalChecked(), Solution::HandleGetters, Solution::HandleSetters);
   Nan::SetAccessor(ctor->InstanceTemplate(), Nan::New("failureRiskSum").ToLocalChecked(), Solution::HandleGetters, Solution::HandleSetters);
-  Nan::SetAccessor(ctor->InstanceTemplate(), Nan::New("singleFactoryFailureScore").ToLocalChecked(), Solution::HandleGetters, Solution::HandleSetters);
+  Nan::SetAccessor(ctor->InstanceTemplate(), Nan::New("singleFactoryFailureSum").ToLocalChecked(), Solution::HandleGetters, Solution::HandleSetters);
+  Nan::SetAccessor(ctor->InstanceTemplate(), Nan::New("flowDistance").ToLocalChecked(), Solution::HandleGetters, Solution::HandleSetters);
+  Nan::SetAccessor(ctor->InstanceTemplate(), Nan::New("failureRisk").ToLocalChecked(), Solution::HandleGetters, Solution::HandleSetters);
+  Nan::SetAccessor(ctor->InstanceTemplate(), Nan::New("singleFactoryFailure").ToLocalChecked(), Solution::HandleGetters, Solution::HandleSetters);
 
   Nan::SetPrototypeMethod(ctor, "add", _Add);
   Nan::SetPrototypeMethod(ctor, "getLength", _GetLength);
@@ -42,11 +48,13 @@ NAN_METHOD(Solution::New) {
     return Nan::ThrowError(Nan::New("Solution::New - called without new keyword").ToLocalChecked());
   }
 
-  // expect <5 arguments
-  if(info.Length() > 5) {
-    return Nan::ThrowError(Nan::New(
-      "Solution::New - expected optional arguments int[] (permutation), double (quality), int (flowDistanceSum), double (failureRiskSum), double (singleFactoryFailureScore)"
-      ).ToLocalChecked());
+  // expect <8 arguments
+  if(info.Length() > 8) {
+    return Nan::ThrowError(Nan::New(strcat(strcat(
+      "Solution::New - expected optional arguments int[] (permutation), double (quality), ",
+      "int (flowDistanceSum), double (failureRiskSum), double (singleFactoryFailureSum), "),
+      "double (flowDistance), double (failureRisk), double (singleFactoryFailure)"
+      )).ToLocalChecked());
   }
 
   // create a new instance and wrap our javascript instance
@@ -70,7 +78,16 @@ NAN_METHOD(Solution::New) {
     sol->failureRiskSum = info[3]->NumberValue();
   }
   if(info[4]->IsNumber()) {
-    sol->singleFactoryFailureScore = info[4]->NumberValue();
+    sol->singleFactoryFailureSum = info[4]->NumberValue();
+  }
+  if(info[5]->IsNumber()) {
+    sol->flowDistance = info[5]->NumberValue();
+  }
+  if(info[6]->IsNumber()) {
+    sol->failureRisk = info[6]->NumberValue();
+  }
+  if(info[7]->IsNumber()) {
+    sol->singleFactoryFailure = info[7]->NumberValue();
   }
 
   // return the wrapped javascript instance
@@ -151,8 +168,8 @@ std::string Solution::ToString(){
     result += " ";
   }
   result += string_format(
-    "\n flowDistanceSum: %i; failureRiskSum: %f; singleFactoryFailureScore: %f", 
-    flowDistanceSum, failureRiskSum, singleFactoryFailureScore
+    "\n flowDistance: %f (%i); failureRiskSum: %f (%f); singleFactoryFailureSum: %f (%f)", 
+    flowDistance, flowDistanceSum, failureRisk, failureRiskSum, singleFactoryFailure, singleFactoryFailureSum
   );
   return result;
 }
@@ -169,8 +186,14 @@ NAN_GETTER(Solution::HandleGetters) {
     info.GetReturnValue().Set(self->flowDistanceSum);
   } else if (propertyName == "failureRiskSum"){
     info.GetReturnValue().Set(self->failureRiskSum);
-  } else if (propertyName == "singleFactoryFailureScore"){
-    info.GetReturnValue().Set(self->singleFactoryFailureScore);
+  } else if (propertyName == "singleFactoryFailureSum"){
+    info.GetReturnValue().Set(self->singleFactoryFailureSum);
+  } else if (propertyName == "flowDistance"){
+    info.GetReturnValue().Set(self->flowDistance);
+  } else if (propertyName == "failureRisk"){
+    info.GetReturnValue().Set(self->failureRisk);
+  } else if (propertyName == "singleFactoryFailure"){
+    info.GetReturnValue().Set(self->singleFactoryFailure);
   } else {
     info.GetReturnValue().Set(Nan::Undefined());
   }
@@ -190,22 +213,31 @@ NAN_SETTER(Solution::HandleSetters) {
     self->flowDistanceSum = value->NumberValue();
   } else if (propertyName == "failureRiskSum"){
     self->failureRiskSum = value->NumberValue();
-  } else if (propertyName == "singleFactoryFailureScore"){
-    self->singleFactoryFailureScore = value->NumberValue();
-  } else {
+  } else if (propertyName == "singleFactoryFailureSum"){
+    self->singleFactoryFailureSum = value->NumberValue();
+  } else if (propertyName == "flowDistance"){
+    self->flowDistance = value->NumberValue();
+  } else if (propertyName == "failureRisk"){
+    self->failureRisk = value->NumberValue();
+  } else if (propertyName == "singleFactoryFailure"){
+    self->singleFactoryFailure = value->NumberValue();
+  }else {
     return Nan::ThrowError(Nan::New("Agent::Not implemented.").ToLocalChecked());
   }
 }
 
 Local<Object> CreateWrappedSolution(Solution& sol){
   // Create new wrapped solution instance _sol
-  const int argc = 5;
+  const int argc = 8;
   v8::Local<v8::Value> argv[argc] = {
     WrapPermutation(sol.permutation),
     Nan::New(sol.quality),
     Nan::New(sol.flowDistanceSum),
     Nan::New(sol.failureRiskSum),
-    Nan::New(sol.singleFactoryFailureScore)
+    Nan::New(sol.singleFactoryFailureSum),
+    Nan::New(sol.flowDistance),
+    Nan::New(sol.failureRisk),
+    Nan::New(sol.singleFactoryFailure)
   };
 
   Local<Function> constructorFunc = Nan::New(Solution::constructor)->GetFunction();
