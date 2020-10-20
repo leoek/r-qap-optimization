@@ -259,7 +259,7 @@ const workerMain = async (
   } else {
     while (!shouldStop) {
       // Worker needs time to recv messages and callbacks before executing native code again...
-      await sleep(batchSize);
+      await sleep(1);
       agent.createSolutions(batchSize);
       solutionCount = solutionCount + batchSize;
       solutionCount % 100 === 0 && reportCreatedSolutionsCount(solutionCount);
