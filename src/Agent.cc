@@ -88,8 +88,6 @@ NAN_METHOD(Agent::New) {
     return Nan::ThrowError(Nan::New("Agent::New - expected argument 5 to be instance of Matrix").ToLocalChecked());
   }
 
-  
-
   // create a new instance and wrap our javascript instance
   Agent* self = new Agent();
   self->Wrap(info.Holder());
@@ -156,6 +154,8 @@ NAN_METHOD(Agent::New) {
   #ifdef DEBUG_OUTPUT
   printf("\nCreated New Agent:\n%s\n", self->ToString().c_str());
   #endif // DEBUG_OUTPUT
+
+  self->generateQualityScoreReferences();
 
   // return the wrapped javascript instance
   info.GetReturnValue().Set(info.Holder());
@@ -439,18 +439,15 @@ int Agent::GetAltFlowDistanceSum(std::vector<std::vector<int>> permutation, std:
 
 /**
  * Iterates through the factories and calculates how much the flowDistance quality gets
- * worse if that factory fails (relative to the flowDistance without failure) and the change-
- * over-cost which is introduced by the switch of the factory.
+ * worse if that factory fails and the changeover-cost which is introduced by the switch of the factory.
  * Each result is weighted according to the failureRate of the factory.
  * 
  * Note that this considers only the event of a single factory failing
  * 
- * referenceFlowDistance: flowDistance without failure
- * relAltFlowDistance: best (with failure eual flowDistance 0 -> 1 worst alternative not feasible (see GetRelativeAltFlowDistance)
- * flowDistancePenalty: relAltFlowDistance [0,1] * referenceFlowDistance
+ * altFlowDistance: new flowDistanceSum without the failed Factory f_i
  * coCost: cost to switch from failed Factory f_i to alternative f_k
  *
- * @returns sum(Factories F, 0->n, F_i-failure [0,1] * (flowDistancePenalty + coCost))
+ * @returns sum(Factories F, 0->n, F_i-failure [0,1] * (altFlowDistance + coCost))
  */
 double Agent::GetSingleFactoryFailureScore(
   int flowDistanceSum,
@@ -510,53 +507,6 @@ int Agent::RateSolution(Solution &sol){
   #else
     sol.failureRiskSum = GetFailureRiskSum(sol.permutation);
     sol.singleFactoryFailureScore = GetSingleFactoryFailureScore(sol.flowDistanceSum, sol.permutation);
-
-    // TODO refactor to only calculate reference values once.
-
-    // get average flow
-    int flowSum = 0;
-    for (int i = 0; i < machines.size(); i++){
-      for (int k = 0; k < machines.size(); k++){
-        flowSum += flowMatrix->GetValue(i, k);
-      }
-    }
-    double averageFlow = flowSum / pow(machines.size(), 2);
-    // get avarage distance
-    int distanceSum = 0;
-    for (int i = 0; i < factories.size(); i++){
-      for (int k = 0; k < factories.size(); k++){
-        distanceSum += distanceMatrix->GetValue(i, k);
-      }
-    }
-    double averageDistance = distanceSum / pow(factories.size(), 2);
-    // get average coCost
-    int coSum = 0;
-    for (int i = 0; i < factories.size(); i++){
-      for (int k = 0; k < factories.size(); k++){
-        coSum += changeOverMatrix->GetValue(i, k);
-      }
-    }
-    double averageChangeOverCost = coSum / pow(factories.size(), 2);
-    // get average factory failure probability
-    double factoryFailureProbabilitySum = 0;
-    for (int i = 0; i < factories.size(); i++){
-        factoryFailureProbabilitySum += factories.at(i)->pFailure;
-    }
-    double averageFactoryFailureProbability = factoryFailureProbabilitySum / factories.size();
-    // get average machine redundancy
-    int machineRedundancySum = 0;
-    for (int i = 0; i < machines.size(); i++){
-        machineRedundancySum += machines.at(i)->redundancy;
-    }
-    double averageMachineRedundancy = machineRedundancySum / machines.size();
-    // get quality reference values
-    double flowDistanceSumReference = (averageDistance * averageFlow) * (machines.size() * machines.size());
-    double failureRiskReference = pow(averageFactoryFailureProbability, averageMachineRedundancy) * machines.size();
-
-    double singleFactoryFailureReference = (flowDistanceSumReference + averageChangeOverCost) * averageFactoryFailureProbability * factories.size();
-    
-    printf("\nSolution Rating Debugging %f %f %f\n", sol.flowDistanceSum / flowDistanceSumReference, sol.failureRiskSum / failureRiskReference, sol.singleFactoryFailureScore / singleFactoryFailureReference);
-
     // aggregate the scores
     sol.quality = (sol.flowDistanceSum / flowDistanceSumReference) + (sol.failureRiskSum / failureRiskReference) + (sol.singleFactoryFailureScore / singleFactoryFailureReference);
   #endif // QAP_ONLY
@@ -845,4 +795,93 @@ NAN_METHOD(Agent::_CreateSolutions) {
     n = info[0]->NumberValue();
   }
   self->CreateSolutions(n);
+}
+
+void Agent::generateQualityScoreReferences(){
+  getFlowDistanceSumReference();
+  getFailureRiskReference();
+  getSingleFactoryFailureReference();
+  printf("\nSolution Rating References: \n flowDistanceSumReference: %f\n failureRiskReference: %f\n singleFactoryFailureReference: %f\n", flowDistanceSumReference, failureRiskReference, singleFactoryFailureReference);
+}
+
+double Agent::getFlowDistanceSumReference(){
+  if (flowDistanceSumReference == -1){
+    flowDistanceSumReference = (averageDistance * averageFlow) * (machines.size() * machines.size());
+  }
+  return flowDistanceSumReference;
+}
+
+double Agent::getFailureRiskReference(){
+  if (failureRiskReference == -1){
+    failureRiskReference = pow(averageFactoryFailureProbability, averageMachineRedundancy) * machines.size();
+  }
+  return failureRiskReference;
+}
+
+double Agent::getSingleFactoryFailureReference(){
+  if (singleFactoryFailureReference == -1){
+    singleFactoryFailureReference = (flowDistanceSumReference + averageChangeOverCost) * averageFactoryFailureProbability * factories.size();
+  }
+  return singleFactoryFailureReference;
+}
+
+double Agent::getAverageFlow(){
+  if (averageFlow == -1){
+    int flowSum = 0;
+    for (int i = 0; i < machines.size(); i++){
+      for (int k = 0; k < machines.size(); k++){
+        flowSum += flowMatrix->GetValue(i, k);
+      }
+    }
+    averageFlow = flowSum / pow(machines.size(), 2);
+  }
+  return averageFlow;
+}
+
+double Agent::getAverageDistance(){
+  if (averageDistance == -1){
+    int distanceSum = 0;
+    for (int i = 0; i < factories.size(); i++){
+      for (int k = 0; k < factories.size(); k++){
+        distanceSum += distanceMatrix->GetValue(i, k);
+      }
+    }
+    averageDistance = distanceSum / pow(factories.size(), 2);
+  }
+  return averageDistance;
+}
+
+double Agent::getAverageChangeOverCost(){
+  if (averageChangeOverCost == -1){
+    int coSum = 0;
+    for (int i = 0; i < factories.size(); i++){
+      for (int k = 0; k < factories.size(); k++){
+        coSum += changeOverMatrix->GetValue(i, k);
+      }
+    }
+    averageChangeOverCost = coSum / pow(factories.size(), 2);
+  }
+  return averageChangeOverCost;
+}
+
+double Agent::getAverageFactoryFailureProbability(){
+  if (averageFactoryFailureProbability == -1){
+    double factoryFailureProbabilitySum = 0;
+    for (int i = 0; i < factories.size(); i++){
+        factoryFailureProbabilitySum += factories.at(i)->pFailure;
+    }
+    averageFactoryFailureProbability = factoryFailureProbabilitySum / factories.size();
+  }
+  return averageFactoryFailureProbability;
+}
+
+double Agent::getAverageMachineRedundancy(){
+  if (averageMachineRedundancy == -1){
+    int machineRedundancySum = 0;
+    for (int i = 0; i < machines.size(); i++){
+        machineRedundancySum += machines.at(i)->redundancy;
+    }
+    return averageMachineRedundancy = machineRedundancySum / machines.size();
+  }
+  return averageMachineRedundancy;
 }
