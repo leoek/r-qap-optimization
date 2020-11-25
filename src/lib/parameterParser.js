@@ -57,11 +57,11 @@ export const getParametersFromArgs = () => {
    * @type parameters
    */
   const parameters = {
-    instanceName: "nug15b",
-    instanceType: INSTANCE_TYPE.RQAP,
+    instanceName: "lipa60a",
+    instanceType: INSTANCE_TYPE.QAP,
     agents: 1,
     solutionCountTarget: 100,
-    qualityTarget: 20,
+    qualityTarget: 0,
     warmupSolutions: 100,
     n: 1,
     /**

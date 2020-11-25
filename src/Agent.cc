@@ -500,18 +500,32 @@ double Agent::GetFailureRiskSum(std::vector<std::vector<int>> permutation){
 
 int Agent::RateSolution(Solution &sol){
   // Rate the generated solution
-  // #TODO rate all criteria (currently only flow*distance)
-  sol.flowDistanceSum = GetFlowDistanceSum(sol.permutation);
-  sol.flowDistance = sol.flowDistanceSum / flowDistanceSumReference;
+  if (flowDistanceSumReference == 0){
+    sol.flowDistanceSum = 0;
+    sol.flowDistance = 0;
+  } else {
+    sol.flowDistanceSum = GetFlowDistanceSum(sol.permutation);
+    sol.flowDistance = sol.flowDistanceSum / flowDistanceSumReference;
+  }
   #ifdef QAP_ONLY
     sol.quality = sol.flowDistanceSum;
   #else
-    sol.failureRiskSum = GetFailureRiskSum(sol.permutation);
-    sol.failureRisk = sol.failureRiskSum / failureRiskReference;
-    sol.singleFactoryFailureSum = GetSingleFactoryFailureSum(sol.flowDistanceSum, sol.permutation);
-    sol.singleFactoryFailure = sol.singleFactoryFailureSum / singleFactoryFailureReference;
+    if (failureRiskReference == (double)0){
+      sol.failureRiskSum = 0;
+      sol.failureRisk = 0;
+    } else {
+      sol.failureRiskSum = GetFailureRiskSum(sol.permutation);
+      sol.failureRisk = sol.failureRiskSum / failureRiskReference;
+    }
+    if (singleFactoryFailureReference == (double)0){
+      sol.singleFactoryFailureSum = 0;
+      sol.singleFactoryFailure = 0;
+    } else {
+      sol.singleFactoryFailureSum = GetSingleFactoryFailureSum(sol.flowDistanceSum, sol.permutation);
+      sol.singleFactoryFailure = sol.singleFactoryFailureSum / singleFactoryFailureReference;
+    }
     // aggregate the scores
-    sol.quality = sol.flowDistance +sol.failureRisk + sol.singleFactoryFailure;
+    sol.quality = sol.flowDistance + sol.failureRisk + sol.singleFactoryFailure;
   #endif // QAP_ONLY
   #ifdef DEBUG_OUTPUT
   printf("\nRatedSolution %s\n", sol.ToString().c_str());

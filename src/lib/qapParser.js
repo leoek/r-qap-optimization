@@ -1,6 +1,7 @@
 import compact from "lodash/compact";
 import { objectValues, asyncCompose } from "../helpers";
 import createParser, { toNativeInstance } from "./parser";
+import { flow } from "lodash";
 
 const PARSE_MODE = {
   N: "n",
@@ -10,10 +11,12 @@ const PARSE_MODE = {
 
 const modes = objectValues(PARSE_MODE);
 
-const parseQAPContent = content => {
+const parseQAPContentLineBased = content => {
   const lines = content.split("\n");
   let modeIndex = 0;
-  let n, flowMatrix = [], distanceMatrix = [];
+  let n,
+    flowMatrix = [],
+    distanceMatrix = [];
   let line = lines.shift();
   while (line || line === "") {
     if (line === "") {
@@ -34,29 +37,75 @@ const parseQAPContent = content => {
   };
 };
 
+const parseQAPContent = content => {
+  const lines = content.split("\n");
+  let modeIndex = 0;
+  let n,
+    flowMatrix = [],
+    distanceMatrix = [];
+  let line = lines.shift();
+  let nextMatrixRow = [];
+  let test = 0;
+  while (line || line === "") {
+    test++;
+    if (line === "") {
+      modeIndex += 1;
+    } else if (modes[modeIndex] === PARSE_MODE.N) {
+      n = parseInt(line);
+    } else {
+      const readValues = compact(line.split(" ")).map(val => parseInt(val));
+      if (nextMatrixRow.length + readValues.length < n) {
+        nextMatrixRow.push(...readValues);
+      } else {
+        while (nextMatrixRow.length < n) {
+          nextMatrixRow.push(readValues.shift());
+        }
+        if (modes[modeIndex] === PARSE_MODE.A) {
+          flowMatrix.push(nextMatrixRow);
+        } else if (modes[modeIndex] === PARSE_MODE.B) {
+          distanceMatrix.push(nextMatrixRow);
+        }
+        nextMatrixRow = [...readValues];
+      }
+    }
+    line = lines.shift();
+  }
+  return {
+    n,
+    flowMatrix,
+    distanceMatrix
+  };
+};
+
 const toObject = (arr, keyResolver = item => item.id) => {
-    const result = {}
-    arr.forEach(item => {
-        result[keyResolver(item)] = item
-    })
-    return result;
-}
+  const result = {};
+  arr.forEach(item => {
+    result[keyResolver(item)] = item;
+  });
+  return result;
+};
 
 const transformQAPContent = ({ n, flowMatrix, distanceMatrix }) => {
-  const factories = toObject([...Array(n)].map((_, i) => ({
+  const factories = toObject(
+    [...Array(n)].map((_, i) => ({
       id: i,
       probability: 0,
       capacity: 1,
       x: 0,
       y: 0
-  })))
-  const machines = toObject([...Array(n)].map((_, i) => ({
+    }))
+  );
+  const machines = toObject(
+    [...Array(n)].map((_, i) => ({
       id: i,
       size: 1,
       redundancy: 1
-  })))
+    }))
+  );
   const changeOverCost = 0;
-  const changeOverMatrix = [...Array(n)].map(_ => [...Array(n)].map(_ => changeOverCost))
+  const changeOverMatrix = [...Array(n)].map(_ =>
+    [...Array(n)].map(_ => changeOverCost)
+  );
   return {
     factories,
     machines,
