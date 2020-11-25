@@ -3,6 +3,9 @@
 using namespace v8;
 using namespace std;
 
+std::random_device rndDevice;
+std::mt19937 rndGenerator(rndDevice());
+
 Local<Array> WrapPopulation(std::vector<Solution*> population){
   v8::Local<v8::Array> jsArray = Nan::New<v8::Array>(population.size());
   for (size_t i = 0; i < population.size(); i++) {
@@ -51,6 +54,7 @@ NAN_MODULE_INIT(Agent::Init) {
   Nan::SetAccessor(ctor->InstanceTemplate(), Nan::New("gBestPopulationWeight").ToLocalChecked(), Agent::HandleGetters, Agent::HandleSetters);
   Nan::SetAccessor(ctor->InstanceTemplate(), Nan::New("rndWeight").ToLocalChecked(), Agent::HandleGetters, Agent::HandleSetters);
   Nan::SetAccessor(ctor->InstanceTemplate(), Nan::New("pHistoryWeight").ToLocalChecked(), Agent::HandleGetters, Agent::HandleSetters);
+  Nan::SetAccessor(ctor->InstanceTemplate(), Nan::New("iterationBestWeight").ToLocalChecked(), Agent::HandleGetters, Agent::HandleSetters);
 
   // link functions
   Nan::SetPrototypeMethod(ctor, "addGlobalSolution", AddGlobalSolution);
@@ -328,44 +332,46 @@ int Agent::GetNextValue(int currentMachineIndex, int level, std::vector<int> pre
     return -1;
   }
 
-  int selected = -1;
-  random_selector<> selector{};
-  // try until a new index is selected
-  while (selected < 0){
-    int populationSelector = GetRndNumberFromRange(0, rndWeight + gBestPopulationWeight + pBestPopulationWeight + pHistoryWeight + iterationBestWeight - 1);
-    if (populationSelector < rndWeight){
-      // Select a random Factory from the available ones
-      selected = selector(availableFactories);
-    } else {
-      // #PERFORMANCE
-      // Cache those which are not possible
-      int possibleIndex = -1;
-      if (populationSelector < rndWeight + gBestPopulationWeight && globalBestSolutions.size() >= 1){
-        Solution * srcSol = selector(globalBestSolutions);
-        possibleIndex = srcSol->permutation.at(currentMachineIndex).at(level);
-      } else if (populationSelector < rndWeight + gBestPopulationWeight + pBestPopulationWeight && personalBestSolutions.size() >= 1){
-        Solution * srcSol = selector(personalBestSolutions);
-        possibleIndex = srcSol->permutation.at(currentMachineIndex).at(level);
-      } else if (populationSelector < rndWeight + gBestPopulationWeight + pBestPopulationWeight + pHistoryWeight && personalHistorySolutions.size() >= 1){
-        Solution * srcSol = selector(personalHistorySolutions);
-        possibleIndex = srcSol->permutation.at(currentMachineIndex).at(level);
-      } else if (populationSelector < rndWeight + gBestPopulationWeight + pBestPopulationWeight + pHistoryWeight + iterationBestWeight && iterationBestSolutions.size() >= 1){
-        Solution * srcSol = selector(iterationBestSolutions);
-        possibleIndex = srcSol->permutation.at(currentMachineIndex).at(level);
-      }
-      // Check whether there is a possible index which was copied from a previous Solution
-      if (possibleIndex >= 0){
-        // Check whether the machine fits into that factory (get the factory at that index)
-        if (factories.at(possibleIndex)->GetUnusedCapacity() >= machines.at(currentMachineIndex)->size){
-          // Check that the (redundant) machine is not placed in the same factory
-          if (!vectorContains(prevSelections, possibleIndex)){
-            // select that index, it is feasible           
-            selected = possibleIndex;
-          }
-        }
-      }
+  vector<double> factoryIndexWeights;
+  for (unsigned int i = 0; i < availableFactories.size(); i++){
+    factoryIndexWeights.push_back(rndWeight);
+  }
+  /**
+   * TODO move the following updates for the factoryIndexWeights to a function
+   * Note that this function must support vector and dequeu...
+   */
+  for (unsigned int k = 0; k < globalBestSolutions.size(); k++){
+    int copiedFactory = globalBestSolutions[k]->permutation.at(currentMachineIndex).at(level);
+    int index = getIndex(availableFactories, copiedFactory);
+    if (index != -1){
+      factoryIndexWeights[index] = factoryIndexWeights[index] + gBestPopulationWeight / globalBestSolutions.size();
     }
   }
+  for (unsigned int k = 0; k < personalBestSolutions.size(); k++){
+    int copiedFactory = personalBestSolutions[k]->permutation.at(currentMachineIndex).at(level);
+    int index = getIndex(availableFactories, copiedFactory);
+    if (index != -1){
+      factoryIndexWeights[index] = factoryIndexWeights[index] + pBestPopulationWeight / personalBestSolutions.size();
+    }
+  }
+  for (unsigned int k = 0; k < personalHistorySolutions.size(); k++){
+    int copiedFactory = personalHistorySolutions[k]->permutation.at(currentMachineIndex).at(level);
+    int index = getIndex(availableFactories, copiedFactory);
+    if (index != -1){
+      factoryIndexWeights[index] = factoryIndexWeights[index] + pHistoryWeight / personalHistorySolutions.size();
+    }
+  }
+  for (unsigned int k = 0; k < iterationBestSolutions.size(); k++){
+    int copiedFactory = iterationBestSolutions[k]->permutation.at(currentMachineIndex).at(level);
+    int index = getIndex(availableFactories, copiedFactory);
+    if (index != -1){
+      factoryIndexWeights[index] = factoryIndexWeights[index] + iterationBestWeight / iterationBestSolutions.size();
+    }
+  }
+
+  std::discrete_distribution<> factoryDistribution(factoryIndexWeights.begin(), factoryIndexWeights.end());
+  int selected = availableFactories.at(factoryDistribution(rndGenerator));
+
   // Use the size of currenMachine in the chosen factory
   factories.at(selected)->UseCapacity(currentMachine->size);
   return selected;

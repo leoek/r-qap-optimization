@@ -9,6 +9,7 @@
 
 int GetRndNumberFromRange(int, int);
 bool vectorContains(std::vector<int> vector, int val);
+int getIndex(std::vector<int> vector, int val);
 /**
  * @param vector to return from
  * @param vector to filter by

@@ -9,7 +9,15 @@ int GetRndNumberFromRange(int start, int end){
 
 bool vectorContains(std::vector<int> vector, int val){
     return std::find(vector.begin(), vector.end(), val) != vector.end();
-} 
+}
+
+int getIndex(std::vector<int> vector, int val) {
+    auto it = std::find(vector.begin(), vector.end(), val);
+    if (it != vector.end()) {
+        return it - vector.begin();
+    }
+    return - 1;
+}
 
 int getFirstNotInList(std::vector<int> input, std::vector<int> filter){
     int i = 0;

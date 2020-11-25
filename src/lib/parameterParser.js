@@ -73,11 +73,11 @@ export const getParametersFromArgs = () => {
       maxGlobalBest: 3,
       maxPersonalHistory: 1,
       maxIterationBest: 3,
-      pBestPopulationWeight: 10,
-      gBestPopulationWeight: 10,
+      pBestPopulationWeight: 10 * 60,
+      gBestPopulationWeight: 10 * 60,
       rndWeight: 1,
-      pHistoryWeight: 3,
-      iterationBestWeight: 0
+      pHistoryWeight: 3 * 60,
+      iterationBestWeight: 10 * 60
     },
     randomizeAgentOptions: true,
     pResetAfterBatch: 0,
