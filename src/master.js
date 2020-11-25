@@ -150,16 +150,16 @@ const main = async ({
        * if they are complete, determine the best and broadcast it.
        */
       if (objectValues(iterationSolutions).length >= workerCount) {
-        let best;
+        let iterationBest;
         Object.keys(iterationSolutions).forEach(id => {
-          if (!best || iterationSolutions[id].quality < best.quality) {
-            best = iterationSolutions[id];
+          if (!iterationBest || iterationSolutions[id].quality < best.quality) {
+            iterationBest = iterationSolutions[id];
           }
           delete iterationSolutions[id];
         });
         broadcast(
           newMessage(MESSAGE_TYPE.NEW_ITERATION_BEST_SOLUTION, {
-            solution: best
+            solution: iterationBest
           })
         );
         createdSolutions = createdSolutions + workerCount;
