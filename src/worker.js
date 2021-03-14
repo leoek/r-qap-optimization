@@ -258,8 +258,13 @@ const workerMain = async (
     solutionCount++;
   } else {
     while (!shouldStop) {
-      // Worker needs time to recv messages and callbacks before executing native code again...
-      await sleep(1);
+      /**
+       * Worker needs time to recv messages and callbacks before executing native
+       * code again...
+       * However it is not necessary to actually wait, even a timeout of 0ms will
+       * be enough to check the event loop again.
+       */
+      await sleep(0);
       agent.createSolutions(batchSize);
       solutionCount = solutionCount + batchSize;
       solutionCount % 100 === 0 && reportCreatedSolutionsCount(solutionCount);
