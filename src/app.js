@@ -87,6 +87,7 @@ const main = async () => {
     let i = 0;
     const qualities = [];
     const qualityComponents = [];
+    const runtimes = [];
     let overallCreatedSolutions = 0;
     let overallBest = null;
     let overallRuntime = 0;
@@ -122,6 +123,7 @@ const main = async () => {
       if (!overallBest || best.quality < overallBest.quality) {
         overallBest = best;
       }
+      runtimes.push(runtime);
       overallRuntime += runtime;
     }
     jsonLogWriteStream.end();
@@ -129,6 +131,7 @@ const main = async () => {
       "overall result:\n",
       inspect(
         {
+          runtimes,
           qualities,
           qualityComponents,
           n,
