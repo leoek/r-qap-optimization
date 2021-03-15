@@ -23,7 +23,7 @@ instanceName <- substring(pathToInstance, lastSlashPosition + 1, nchar(pathToIns
 
 # Parameter anhand der Argumente etzen
 agents <- 10
-solutionCountTarget <- "10000"
+solutionCountTarget <- "100000"
 
 # append all args except the path to the instance
 combinedArgs <- paste(args[-1], collapse = " ")
