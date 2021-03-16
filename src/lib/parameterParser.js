@@ -79,7 +79,7 @@ export const getParametersFromArgs = () => {
       pHistoryWeight: 3 * 60,
       iterationBestWeight: 10 * 60
     },
-    randomizeAgentOptions: true,
+    randomizeAgentOptions: false,
     pResetAfterBatch: 0,
     seed: -1,
     iraceOutputFileName: undefined,
